@@ -1,0 +1,50 @@
+# Java/Maven
+*.class
+*.jar
+*.war
+*.ear
+/target/
+
+# Maven
+.mvn/
+!/.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+logs.txt
+
+# Eclipse
+*.classpath
+*.project
+*.settings/
+
+# IntelliJ
+*.iml
+.idea/
+out/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Generated sources
+**/generated-sources/
+**/generated-test-sources/
+
+# Misc
+*.swp
+*.swo
+
+# Node (if any frontend)
+node_modules/
+
+# Environment files
+.env
+

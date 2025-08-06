@@ -1,0 +1,15 @@
+kafka:
+  topic:
+    post-created-topic: post-created-topic
+    post-liked-topic: post-liked-topic
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: "http://localhost:8081"
+        specific.avro.reader: "true"
+        spring.json.trusted.packages: com.gc.CollabSphereApp.*

@@ -1,0 +1,17 @@
+{
+  "name": "AcceptConnectionEvent",
+  "namespace": "com.gc.CollabSphereApp.event",
+  "type": "record",
+  "fields": [
+    {
+      "name": "senderId",
+      "type": "long",
+      "default": 0
+    },
+    {
+      "name": "receiverId",
+      "type": "long",
+      "default": 0
+    }
+  ]
+}

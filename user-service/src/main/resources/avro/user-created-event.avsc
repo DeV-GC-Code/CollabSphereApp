@@ -1,0 +1,27 @@
+{
+  "name": "UserCreatedEvent",
+  "namespace": "com.gc.CollabSphereApp.event",
+  "type": "record",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long",
+      "default": 0
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "worksAt",
+      "type": "string",
+      "default": ""
+    }
+  ]
+}

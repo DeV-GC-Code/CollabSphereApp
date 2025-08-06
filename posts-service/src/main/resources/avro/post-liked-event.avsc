@@ -1,0 +1,22 @@
+{
+  "name": "PostLikedEvent",
+  "namespace": "com.gc.CollabSphereApp.event",
+  "type": "record",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long",
+      "default": 0
+    },
+    {
+      "name": "postid",
+      "type": "long",
+      "default": 0
+    },
+    {
+      "name": "userid",
+      "type": "long",
+      "default": 0
+    }
+  ]
+}

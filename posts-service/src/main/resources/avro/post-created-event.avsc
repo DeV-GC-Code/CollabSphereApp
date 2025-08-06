@@ -1,0 +1,22 @@
+{
+  "name": "PostCreatedEvent",
+  "namespace": "com.gc.CollabSphereApp.event",
+  "type": "record",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long",
+      "default": 0
+    },
+    {
+      "name": "content",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "userid",
+      "type": "long",
+      "default": 0
+    }
+  ]
+}
