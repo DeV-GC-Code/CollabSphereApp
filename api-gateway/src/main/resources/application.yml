@@ -27,6 +27,14 @@ spring:
             - StripPrefix=2
             - name: AuthenticationFilter
 
+        - id: likes-service
+          uri: lb://POSTS-SERVICE
+          predicates:
+            - Path=/api/v1/likes/**
+          filters:
+            - RewritePath=/api/v1/likes/(?<segment>.*), /posts/likes/$\{segment}
+            - name: AuthenticationFilter
+
 jwt.secretKey: ${secret}
 server:
   port: 8007

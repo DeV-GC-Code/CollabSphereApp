@@ -1,0 +1,13 @@
+  ./scripts/local-dev.sh start
+  ./scripts/local-dev.sh status
+  ./scripts/local-dev.sh logs connections-service
+  ./scripts/local-dev.sh stop
+  ./scripts/local-dev.sh stop --infra
+
+ AQgitpp is available through:
+
+    http://localhost:8007
+
+    Neo4j Browser:
+
+    http://localhost:7474
