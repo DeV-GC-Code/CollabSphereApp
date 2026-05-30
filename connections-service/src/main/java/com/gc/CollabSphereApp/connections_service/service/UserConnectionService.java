@@ -34,14 +34,19 @@ public class UserConnectionService {
     public void handleUserCreatedEvent(UserCreatedEvent event) {
         try {
             log.info("Received UserCreatedEvent: {}", event);
-            // MERGE Cypher for idempotency
-            personRepository.upsertPersonWithCompanyAndColleagues(
+            String worksAt = event.getWorksAt() == null ? "" : event.getWorksAt().toString().trim();
+
+            personRepository.upsertPersonAndClearDerivedRelationships(
                     event.getId(),
                     event.getName().toString(),
                     event.getEmail().toString(),
-                    event.getWorksAt().toString(),
+                    worksAt,
                     LocalDateTime.now() // or event.getUpdatedAt() if available
             );
+
+            if (!worksAt.isBlank()) {
+                personRepository.linkPersonToCompanyAndColleagues(event.getId(), worksAt);
+            }
             log.info("Upserted Person node for userId={}", event.getId());
         } catch (DataAccessException | IllegalArgumentException ex) {
             log.warn("Malformed UserCreatedEvent, will be sent to DLQ by DefaultErrorHandler: {}", event, ex);

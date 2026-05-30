@@ -63,6 +63,17 @@ public interface PersonRepository extends Neo4jRepository<Person, Long> {
     @Query("""
 MERGE (p:Person {userId: $userId})
 SET p.name = $name, p.email = $email, p.worksAt = $worksAt, p.updatedAt = $updatedAt
+WITH p
+OPTIONAL MATCH (p)-[worksAt:WORKS_AT]->(:Company)
+DELETE worksAt
+WITH p
+OPTIONAL MATCH (p)-[colleagueWith:COLLEAGUE_WITH]-(:Person)
+DELETE colleagueWith
+""")
+    void upsertPersonAndClearDerivedRelationships(Long userId, String name, String email, String worksAt, java.time.LocalDateTime updatedAt);
+
+    @Query("""
+MATCH (p:Person {userId: $userId})
 MERGE (c:Company {name: $worksAt})
 MERGE (p)-[:WORKS_AT]->(c)
 WITH p, c
@@ -71,5 +82,5 @@ WHERE colleague.userId <> $userId
 MERGE (p)-[:COLLEAGUE_WITH]->(colleague)
 MERGE (colleague)-[:COLLEAGUE_WITH]->(p)
 """)
-    void upsertPersonWithCompanyAndColleagues(Long userId, String name, String email, String worksAt, java.time.LocalDateTime updatedAt);
+    void linkPersonToCompanyAndColleagues(Long userId, String worksAt);
 }

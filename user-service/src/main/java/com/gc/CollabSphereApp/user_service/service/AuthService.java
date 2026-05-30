@@ -38,7 +38,12 @@ public class AuthService {
 
         User user = modelMapper.map(signupRequestDto, User.class);
         user.setPassword(PasswordUtil.hashPassword(signupRequestDto.getPassword()));
-        user.setWorksAt(signupRequestDto.getWorksAt());
+        // Ensure worksAt is never null when persisting (DB has NOT NULL constraint)
+        String worksAt = signupRequestDto.getWorksAt();
+        if (worksAt == null) {
+            worksAt = ""; // default empty string when client doesn't provide value
+        }
+        user.setWorksAt(worksAt);
 
         User savedUser = userRepository.save(user);
         // Send UserCreatedEvent to Kafka
