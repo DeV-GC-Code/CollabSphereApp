@@ -27,21 +27,21 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             final String tokenHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            if(tokenHeader == null || !tokenHeader.startsWith("Bearer")) {
+            if(tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 log.error("Authorization token header not found");
                 return exchange.getResponse().setComplete();
             }
 
-            final String token = tokenHeader.split("Bearer ")[1];
+            final String token = tokenHeader.substring(7);
 
             try {
-                String userId = jwtService.getUserIdFromToken(token);
                 ServerWebExchange modifiedExchange = exchange
                         .mutate()
-                        .request(r -> r.header("X-User-Id", userId))
+                        .request(r -> r.headers(headers -> headers.remove("X-User-Id")))
                         .build();
 
+                jwtService.getUserIdFromToken(token);
                 return chain.filter(modifiedExchange);
             } catch (JwtException e) {
                 log.error("JWT Exception: {}", e.getLocalizedMessage());

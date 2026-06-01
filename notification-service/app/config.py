@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     port: int = 9070
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/postgres"
+    database_url: str
     jwt_secret: str                          # required — no default
     kafka_bootstrap_servers: str = "localhost:9092"
     schema_registry_url: str = "http://localhost:8081"

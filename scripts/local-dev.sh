@@ -49,7 +49,7 @@ load_env() {
   Copy the template and edit it:
     cp .env.local.example .env.local
 
-  Required variables: secret  dbuserId  dbuserpwd  neoUserId  neoPwd
+  Required variables: secret  dbuserId  dbuserpwd  neoUserId  neoPwd  mongoUserId  mongoUserPwd
 
 EOF
     exit 1
@@ -60,12 +60,17 @@ EOF
   source "$ENV_FILE"
   set +a
 
-  for var in secret dbuserId dbuserpwd neoUserId neoPwd; do
+  for var in secret dbuserId dbuserpwd neoUserId neoPwd mongoUserId mongoUserPwd; do
     if [[ -z "${!var:-}" ]]; then
       echo "ERROR: missing required env var '$var' in $ENV_FILE" >&2
       exit 1
     fi
   done
+
+  if [[ "${secret}" == CHANGE_ME* || "${dbuserpwd}" == CHANGE_ME* || "${neoPwd}" == CHANGE_ME* || "${mongoUserPwd}" == CHANGE_ME* ]]; then
+    echo "ERROR: replace CHANGE_ME placeholder credentials in $ENV_FILE before starting services" >&2
+    exit 1
+  fi
 
   if [[ -z "${SEED_DEFAULT_PASSWORD:-}" ]]; then
     echo "  ⚠️  SEED_DEFAULT_PASSWORD not set — user-service will start without seeding demo accounts"
@@ -363,7 +368,7 @@ start_go() {
   # Write .env from root .env.local values
   cat >"$svc_dir/.env" <<GOENV
 PORT=$port
-MONGODB_URI=${MONGODB_URI:-mongodb://${mongoUserId:-mongouser}:${mongoUserPwd:-mongopass}@localhost:27017/collabsphere_messages?authSource=admin}
+MONGODB_URI=${MONGODB_URI:-mongodb://${mongoUserId}:${mongoUserPwd}@localhost:27017/collabsphere_messages?authSource=admin}
 JWT_SECRET=${secret}
 EUREKA_HOST=localhost
 EUREKA_PORT=8761

@@ -3,12 +3,17 @@
 ## First-Time Setup
 
 ```bash
-cp .env.local.example .env.local   # configure credentials
+cp .env.local.example .env.local   # fill every required blank credential
 ./scripts/local-dev.sh start       # start everything (~10 min first time)
 ./scripts/local-dev.sh seed        # load demo data
 ```
 
-Open **http://localhost:3000** — login with `admin@example.com` (password: see `user-service/DataInitializer.java`).
+Open **http://localhost:3000**.
+
+- With `SEED_DEFAULT_PASSWORD` set: login as `admin@example.com` using that password.
+- With `SEED_DEFAULT_PASSWORD` blank: create a user from the signup screen.
+
+`scripts/local-dev.sh` generates service-specific `.env` files from root `.env.local`; edit `.env.local`, not the generated service files.
 
 ---
 
@@ -23,6 +28,20 @@ Open **http://localhost:3000** — login with `admin@example.com` (password: see
 | `./scripts/local-dev.sh restart` | Full stop then start |
 | `./scripts/local-dev.sh seed` | Seed spheres + Neo4j connections |
 | `./scripts/local-dev.sh status` | Show status of every service |
+
+## Required Environment
+
+`start`, `restart`, `seed`, `status`, and `ui` read `.env.local`.
+
+| Variable | Used by | Notes |
+|---|---|---|
+| `secret` | Gateway and all authenticated services | Generate with `openssl rand -hex 32` |
+| `dbuserId`, `dbuserpwd` | PostgreSQL, Java services, Python service, spheres service | Required |
+| `neoUserId`, `neoPwd` | Neo4j and connections seed sync | Required |
+| `mongoUserId`, `mongoUserPwd` | MongoDB and messages service | Required |
+| `MONGODB_URI` | messages service | Optional; generated when blank |
+| `ADMIN_EMAIL` | user seed and admin checks | Defaults to `admin@example.com` |
+| `SEED_DEFAULT_PASSWORD` | user-service seeding | Blank disables demo user creation |
 
 ## Logs
 
@@ -39,6 +58,8 @@ Open **http://localhost:3000** — login with `admin@example.com` (password: see
 ```
 
 Logs live in `.local-dev/logs/`.
+
+Build logs for Spring services are written as `.local-dev/logs/<service>-build.log`.
 
 ## UI Only
 
@@ -81,7 +102,7 @@ docker volume rm collabsphere-postgres-data collabsphere-neo4j-data \
 
 ## Test Accounts
 
-All seeded users share the same default password — see `user-service/src/.../config/DataInitializer.java`.
+Seeded users are created only when `SEED_DEFAULT_PASSWORD` is set before `user-service` starts. All seeded users share that password.
 
 | Email | Name |
 |---|---|
@@ -90,5 +111,12 @@ All seeded users share the same default password — see `user-service/src/.../c
 | priya@example.com | Priya Shah |
 | jim@example.com | Jim Patel |
 | maria@example.com | Maria Garcia |
+
+## Security Notes
+
+- Do not commit `.env.local` or generated service `.env` files.
+- Authenticated routes validate JWTs in the gateway and in the receiving backend service.
+- The gateway strips caller-supplied `X-User-Id`; services derive identity from the signed bearer token.
+- Docker Compose requires explicit credentials and no longer falls back to default DB passwords.
 
 > Full setup guide: [`../setup.md`](../setup.md)

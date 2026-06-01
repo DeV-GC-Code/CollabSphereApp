@@ -60,6 +60,11 @@ dist/
 # Environment files
 .env
 .env.local
+.env.*
+!.env.example
+!.env.local.example
+!**/.env.example
+!**/.env.local.example
 
 # Local dev runtime
 .local-dev/
