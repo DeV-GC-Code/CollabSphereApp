@@ -9,8 +9,8 @@ Everything you need to go from a clean machine to a fully running local stack.
 | Tool | Minimum version | Notes |
 |---|---:|---|
 | Java JDK | 21 | Required by Spring Boot services (user, posts, connections, gateway, discovery) |
-| Go | 1.22 | Required by `messages-service-go` |
-| Python | 3.11+ | Required by `notification-service-py` |
+| Go | 1.22 | Required by `messages-service` |
+| Python | 3.11+ | Required by `notification-service` |
 | Node.js | 20 | Required by `collabsphere-ui` and `spheres-service` |
 | npm | 10 | Bundled with recent Node.js releases |
 | Docker | Current | Runs PostgreSQL, MongoDB, Neo4j, Kafka, Schema Registry |
@@ -44,47 +44,41 @@ cd CollabSphereApp
 cp .env.local.example .env.local
 ```
 
-Open `.env.local` and set values for your machine:
+Open `.env.local` and fill in the blank values for your machine:
 
 ```bash
 # JWT secret — must be at least 32 characters
-secret=collabsphere-local-secret-key-32chars-minimum
+# Generate with: openssl rand -hex 32
+secret=
 
-# PostgreSQL credentials (matches what Docker Compose starts)
-dbuserId=postgres
-dbuserpwd=postgres
+# PostgreSQL credentials (Docker Compose reads these)
+dbuserId=
+dbuserpwd=
 
 # Neo4j credentials
-neoUserId=neo4j
-neoPwd=yourpassword          # ← change this to your chosen Neo4j password
+neoUserId=
+neoPwd=
 
 # MongoDB credentials
-mongoUserId=mongouser
-mongoUserPwd=mongopass
-MONGODB_URI=mongodb://mongouser:mongopass@localhost:27017/collabsphere_messages?authSource=admin
+mongoUserId=
+mongoUserPwd=
+# Optional: leave blank to let local-dev.sh build this from mongoUserId/mongoUserPwd.
+MONGODB_URI=
 
 # Admin account (auto-created on first boot)
 ADMIN_EMAIL=admin@example.com
+
+# Optional demo seed password. Leave blank to disable demo account seeding.
+SEED_DEFAULT_PASSWORD=
 ```
 
-> The Neo4j password you set here must match the one you configure in Docker.  
-> All other defaults work without changes for a local-only setup.
+> Do not commit `.env.local`; it is ignored by git and should contain your machine-specific secrets only.
+
+`scripts/local-dev.sh` uses this one file to generate service-specific `.env` files for `messages-service`, `notification-service`, and `spheres-service`. Do not edit those generated files directly; changes will be overwritten on the next start.
 
 ---
 
-## 4. Configure Neo4j Password in Docker Compose
-
-Open `docker-compose.local.yml` and set the Neo4j password to match `.env.local`:
-
-```yaml
-neo4j:
-  environment:
-    - NEO4J_AUTH=neo4j/<your-neo4j-password>
-```
-
----
-
-## 5. Start the Full Stack
+## 4. Start the Full Stack
 
 ```bash
 ./scripts/local-dev.sh start
@@ -97,8 +91,8 @@ This single command:
 3. Waits for each infrastructure service to become healthy
 4. Builds each Spring Boot service with Maven (`./mvnw -DskipTests package`)
 5. Starts all Spring Boot services (discovery-server, user-service, posts-service, connections-service, api-gateway)
-6. Builds and starts `messages-service-go` (Go binary compiled via `go build`)
-7. Starts `notification-service-py` (Python venv created automatically, uvicorn on :9070)
+6. Builds and starts `messages-service` (Go binary compiled via `go build`)
+7. Starts `notification-service` (Python venv created automatically, uvicorn on :9070)
 8. Starts `spheres-service` (Node.js), runs the DB migration, generates its `.env` from root `.env.local`
 9. Starts the React UI dev server on port 3000
 10. Prints a service status table
@@ -106,9 +100,11 @@ This single command:
 The first run takes **8–15 minutes** due to Maven dependency downloads and Docker image pulls.  
 Subsequent starts take **2–3 minutes** (jars are cached).
 
+If a required credential is blank, the script stops before starting infrastructure. Fill in `.env.local` and rerun the same command.
+
 ---
 
-## 6. Load Demo Data
+## 5. Load Demo Data
 
 After all services are healthy, seed the demo content:
 
@@ -117,13 +113,16 @@ After all services are healthy, seed the demo content:
 ```
 
 This:
+- Requires `SEED_DEFAULT_PASSWORD` to have been set before `user-service` started if you want demo users.
 - Seeds 6 community spheres with posts and comments
 - Creates the admin user's Neo4j graph node
 - Connects admin to all other seeded users so their feed is populated
 
+If you left `SEED_DEFAULT_PASSWORD` blank, signup still works, but the demo users listed below will not exist.
+
 ---
 
-## 7. Open the App
+## 6. Open the App
 
 ```bash
 open http://localhost:3000
@@ -134,13 +133,13 @@ open http://localhost:3000
 | Field | Value |
 |---|---|
 | Email | `admin@example.com` |
-| Password | *(seed default — see `user-service` `DataInitializer.java`)* |
+| Password | The value of `SEED_DEFAULT_PASSWORD` in `.env.local` |
 
-All seeded accounts share the same seed default password defined in `user-service/src/main/java/.../config/DataInitializer.java`.
+All seeded accounts share `SEED_DEFAULT_PASSWORD`. If you left it blank, use the signup screen to create your first account.
 
 ---
 
-## 8. Verify Everything is Running
+## 7. Verify Everything is Running
 
 ```bash
 ./scripts/local-dev.sh status
@@ -208,21 +207,21 @@ cat .local-dev/logs/user-service-build.log
 ./scripts/local-dev.sh logs user-service
 ```
 
-### Go service (`messages-service-go`) fails to start
+### Go service (`messages-service`) fails to start
 ```bash
-./scripts/local-dev.sh logs messages-service-go
+./scripts/local-dev.sh logs messages-service
 # Common cause: MongoDB not ready yet — the start script retries Eureka registration automatically
 ```
 
-### Python service (`notification-service-py`) fails to start
+### Python service (`notification-service`) fails to start
 ```bash
-./scripts/local-dev.sh logs notification-service-py
-# Common cause: missing venv — delete .venv and restart: rm -rf notification-service-py/.venv
+./scripts/local-dev.sh logs notification-service
+# Common cause: missing venv — delete .venv and restart: rm -rf notification-service/.venv
 # The start script recreates it automatically from requirements.txt
 ```
 
 ### Neo4j auth error
-Verify the password in `.env.local` matches `NEO4J_AUTH` in `docker-compose.local.yml`.
+Stop the stack with `./scripts/local-dev.sh stop --infra`, remove the old Neo4j volume if you changed credentials, then start again. Neo4j stores the first password in its data volume.
 
 ### Spheres service shows "No spheres found"
 Run `./scripts/local-dev.sh seed` — the spheres DB needs seeding separately from the Spring Boot DataInitializers.
@@ -235,3 +234,5 @@ docker volume rm collabsphere-postgres-data collabsphere-neo4j-data \
 ./scripts/local-dev.sh start
 ./scripts/local-dev.sh seed
 ```
+
+If Docker reports a volume is still in use, wait a few seconds after `stop --infra` and retry `docker volume rm`.

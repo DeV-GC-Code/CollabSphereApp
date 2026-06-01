@@ -7,8 +7,11 @@ import { pool } from "./pool.js";
 
 const USER_DB_URL =
   process.env.USER_DB_URL ||
-  process.env.DATABASE_URL?.replace("collabsphere_spheres", "postgres") ||
-  "postgresql://postgres:postgres@localhost:5432/postgres";
+  process.env.DATABASE_URL?.replace("collabsphere_spheres", "postgres");
+
+if (!USER_DB_URL) {
+  throw new Error("USER_DB_URL or DATABASE_URL must be set before running the spheres seed");
+}
 
 async function resolveUsers() {
   const { Pool } = (await import("pg")).default;

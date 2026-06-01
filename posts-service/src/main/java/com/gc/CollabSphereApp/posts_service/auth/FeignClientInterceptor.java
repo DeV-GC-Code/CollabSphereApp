@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 public class FeignClientInterceptor implements RequestInterceptor {
     @Override
     public void apply(RequestTemplate requestTemplate) {
-        Long userId = UserContextHolder.getCurrentUserId();
-        if(userId!=null) {
-            requestTemplate.header("X-User-Id", userId.toString());
+        String authorizationHeader = UserContextHolder.getCurrentAuthorizationHeader();
+        if(authorizationHeader != null) {
+            requestTemplate.header("Authorization", authorizationHeader);
         }
     }
 }

@@ -8,13 +8,13 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: postgres
-      POSTGRES_USER: ${dbuserId}
-      POSTGRES_PASSWORD: ${dbuserpwd}
+      POSTGRES_USER: ${dbuserId:?set dbuserId in .env.local}
+      POSTGRES_PASSWORD: ${dbuserpwd:?set dbuserpwd in .env.local}
     volumes:
       - collabsphere-postgres-data:/var/lib/postgresql/data
       - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${dbuserId} -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${dbuserId:?set dbuserId in .env.local} -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -27,7 +27,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      NEO4J_AUTH: ${neoUserId}/${neoPwd}
+      NEO4J_AUTH: ${neoUserId:?set neoUserId in .env.local}/${neoPwd:?set neoPwd in .env.local}
     volumes:
       - collabsphere-neo4j-data:/data
       - collabsphere-neo4j-logs:/logs
@@ -44,8 +44,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${mongoUserId:-mongouser}
-      MONGO_INITDB_ROOT_PASSWORD: ${mongoUserPwd:-mongopass}
+      MONGO_INITDB_ROOT_USERNAME: ${mongoUserId:?set mongoUserId in .env.local}
+      MONGO_INITDB_ROOT_PASSWORD: ${mongoUserPwd:?set mongoUserPwd in .env.local}
       MONGO_INITDB_DATABASE: collabsphere_messages
     volumes:
       - collabsphere-mongodb-data:/data/db
