@@ -35,6 +35,30 @@ spring:
             - RewritePath=/api/v1/likes/(?<segment>.*), /posts/likes/$\{segment}
             - name: AuthenticationFilter
 
+        - id: spheres-service
+          uri: lb://SPHERES-SERVICE
+          predicates:
+            - Path=/api/v1/spheres/**
+          filters:
+            - StripPrefix=3
+            - name: AuthenticationFilter
+
+        - id: messages-service
+          uri: lb://MESSAGES-SERVICE
+          predicates:
+            - Path=/api/v1/messages/**
+          filters:
+            - StripPrefix=2
+            - name: AuthenticationFilter
+
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/v1/notifications/**
+          filters:
+            - StripPrefix=2
+            - name: AuthenticationFilter
+
 jwt.secretKey: ${secret}
 server:
   port: 8007

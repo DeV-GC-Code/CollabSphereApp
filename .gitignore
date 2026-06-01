@@ -4,18 +4,27 @@
 *.war
 *.ear
 /target/
+**/target/
 
 # Maven
-.mvn/
-!/.mvn/wrapper/maven-wrapper.jar
+.mvn/*
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
+**/.mvn/*
+!**/.mvn/wrapper/
+!**/.mvn/wrapper/maven-wrapper.properties
 
 # Logs
 *.log
 logs.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Eclipse
 *.classpath
 *.project
+*.claude
 *.settings/
 
 # IntelliJ
@@ -44,6 +53,9 @@ docker-compose.override.yml
 
 # Node (if any frontend)
 node_modules/
+**/node_modules/
+dist/
+**/dist/
 
 # Environment files
 .env
@@ -51,3 +63,17 @@ node_modules/
 
 # Local dev runtime
 .local-dev/
+
+# Test data (contains seed account details)
+test-data.md
+
+# Go build output
+messages-service/messages-service
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.venv/
+**/.venv/

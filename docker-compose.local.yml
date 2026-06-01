@@ -1,4 +1,6 @@
 services:
+
+  # ── PostgreSQL — used by: user, posts, notifications, spheres ─────────────
   postgres:
     image: postgres:16-alpine
     container_name: collabsphere-postgres
@@ -10,12 +12,14 @@ services:
       POSTGRES_PASSWORD: ${dbuserpwd}
     volumes:
       - collabsphere-postgres-data:/var/lib/postgresql/data
+      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${dbuserId} -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+  # ── Neo4j — used by: connections-service ──────────────────────────────────
   neo4j:
     image: neo4j:5
     container_name: collabsphere-neo4j
@@ -33,7 +37,26 @@ services:
       timeout: 5s
       retries: 30
 
+  # ── MongoDB — used by: messages-service ───────────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: collabsphere-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${mongoUserId:-mongouser}
+      MONGO_INITDB_ROOT_PASSWORD: ${mongoUserPwd:-mongopass}
+      MONGO_INITDB_DATABASE: collabsphere_messages
+    volumes:
+      - collabsphere-mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
 volumes:
   collabsphere-postgres-data:
   collabsphere-neo4j-data:
   collabsphere-neo4j-logs:
+  collabsphere-mongodb-data:
