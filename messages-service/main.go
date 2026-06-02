@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -70,9 +68,6 @@ func main() {
 		}
 	}()
 
-	// ── Eureka registration ──────────────────────────────────────────────────
-	go registerWithEureka(cfg)
-
 	// ── Graceful shutdown ────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -83,61 +78,4 @@ func main() {
 	defer cancel()
 	_ = srv.Shutdown(ctx)
 	_ = mongoClient.Disconnect(ctx)
-}
-
-func registerWithEureka(cfg Config) {
-	instanceID := fmt.Sprintf("%s:messages-service:%d", cfg.ServiceHost, cfg.Port)
-	eurekaURL := fmt.Sprintf("http://%s:%s/eureka/apps/MESSAGES-SERVICE", cfg.EurekaHost, cfg.EurekaPort)
-
-	payload := map[string]interface{}{
-		"instance": map[string]interface{}{
-			"instanceId":      instanceID,
-			"hostName":        cfg.ServiceHost,
-			"app":             "MESSAGES-SERVICE",
-			"ipAddr":          cfg.ServiceHost,
-			"status":          "UP",
-			"port":            map[string]interface{}{"$": cfg.Port, "@enabled": "true"},
-			"vipAddress":      "messages-service",
-			"secureVipAddress": "messages-service",
-			"metadata":        map[string]string{"management.port": fmt.Sprintf("%d", cfg.Port)},
-			"dataCenterInfo": map[string]interface{}{
-				"@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
-				"name":   "MyOwn",
-			},
-			"healthCheckUrl": fmt.Sprintf("http://%s:%d/actuator/health", cfg.ServiceHost, cfg.Port),
-			"statusPageUrl":  fmt.Sprintf("http://%s:%d/actuator/health", cfg.ServiceHost, cfg.Port),
-			"homePageUrl":    fmt.Sprintf("http://%s:%d/", cfg.ServiceHost, cfg.Port),
-		},
-	}
-
-	for attempt := 1; attempt <= 10; attempt++ {
-		if register(eurekaURL, payload) {
-			log.Printf("[messages-service] Registered with Eureka")
-			break
-		}
-		log.Printf("[messages-service] Eureka not ready, retry %d/10 …", attempt)
-		time.Sleep(5 * time.Second)
-	}
-
-	// Heartbeat every 25 seconds
-	heartbeatURL := fmt.Sprintf("http://%s:%s/eureka/apps/MESSAGES-SERVICE/%s",
-		cfg.EurekaHost, cfg.EurekaPort, instanceID)
-	for {
-		time.Sleep(25 * time.Second)
-		req, _ := http.NewRequest(http.MethodPut, heartbeatURL, nil)
-		resp, err := http.DefaultClient.Do(req)
-		if err == nil {
-			resp.Body.Close()
-		}
-	}
-}
-
-func register(url string, payload map[string]interface{}) bool {
-	body, _ := json.Marshal(payload)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK
 }
