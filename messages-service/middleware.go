@@ -35,7 +35,7 @@ func JWTMiddleware(secret string) gin.HandlerFunc {
 				return nil, jwt.ErrSignatureInvalid
 			}
 			return key, nil
-		}, jwt.WithValidMethods([]string{"HS256"}))
+		}, jwt.WithValidMethods([]string{"HS256", "HS512"}))
 
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})

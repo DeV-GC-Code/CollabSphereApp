@@ -23,7 +23,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
-            log.info("Login request: {}", exchange.getRequest().getURI());
+            log.info("Authenticated request: {}", exchange.getRequest().getURI());
 
             final String tokenHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
@@ -36,12 +36,19 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             final String token = tokenHeader.substring(7);
 
             try {
+                final String userId = jwtService.getUserIdFromToken(token);
+
+                // Strip client-supplied X-User-Id (prevents spoofing), then inject the
+                // gateway-validated value so downstream services can trust it without
+                // re-parsing the JWT.
                 ServerWebExchange modifiedExchange = exchange
                         .mutate()
-                        .request(r -> r.headers(headers -> headers.remove("X-User-Id")))
+                        .request(r -> r.headers(headers -> {
+                            headers.remove("X-User-Id");
+                            headers.add("X-User-Id", userId);
+                        }))
                         .build();
 
-                jwtService.getUserIdFromToken(token);
                 return chain.filter(modifiedExchange);
             } catch (JwtException e) {
                 log.error("JWT Exception: {}", e.getLocalizedMessage());

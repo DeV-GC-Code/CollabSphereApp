@@ -6,7 +6,11 @@ import spheresRouter from "./routes/spheres.js";
 const app = express();
 const PORT = process.env.PORT || 8009;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+}));
 app.use(express.json());
 
 app.get("/actuator/health", (_req, res) => res.json({ status: "UP" }));

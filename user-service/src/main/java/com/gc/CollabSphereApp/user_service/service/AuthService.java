@@ -68,7 +68,7 @@ public class AuthService {
                 .setEmail(savedUser.getEmail())
                 .setWorksAt(savedUser.getWorksAt())
                 .build();
-        kafkaTemplate.send(userCreatedTopic, Long.valueOf(savedUser.getId().toString()), event);
+        kafkaTemplate.send(userCreatedTopic, savedUser.getId(), event);
         return modelMapper.map(savedUser, UserDto.class);
     }
 

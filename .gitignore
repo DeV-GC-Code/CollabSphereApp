@@ -71,6 +71,7 @@ dist/
 
 # Test data (contains seed account details)
 test-data.md
+CHANGES.md
 
 # Go build output
 messages-service/messages-service
