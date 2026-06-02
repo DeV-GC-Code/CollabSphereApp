@@ -10,9 +10,6 @@ class Settings(BaseSettings):
     jwt_secret: str                          # required — no default
     kafka_bootstrap_servers: str = "localhost:9092"
     schema_registry_url: str = "http://localhost:8081"
-    eureka_host: str = "localhost"
-    eureka_port: int = 8761
-    service_host: str = "localhost"
     admin_email: str = "admin@example.com"
 
     topic_post_created: str = "post-created-topic"
