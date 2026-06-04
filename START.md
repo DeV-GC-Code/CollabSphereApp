@@ -20,15 +20,8 @@ Verify:
 
 ## 2. MongoDB
 
-> Brew service fails on this machine — start directly with the binary.
-
 ```bash
-mkdir -p /opt/homebrew/var/mongodb
-/opt/homebrew/Cellar/mongodb-community@4.4/4.4.21/bin/mongod \
-  --dbpath /opt/homebrew/var/mongodb \
-  --logpath /tmp/mongodb.log \
-  --port 27017 \
-  --fork
+brew services start mongodb-community@8.0
 ```
 
 Verify:
@@ -70,15 +63,21 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:7474/
 > Uses KRaft mode (no ZooKeeper). Run once on first use to format storage.
 
 ```bash
+#Wiped the corrupted Kafka metadata directory:
+
+rm -rf /opt/homebrew/var/lib/kraft-combined-logs
+
 # First-time only — format the KRaft log directory
+# (Using tail -n 1 to filter out any JVM startup logs)
 CLUSTER_ID=$(kafka-storage random-uuid)
 kafka-storage format -t "$CLUSTER_ID" -c /opt/homebrew/etc/kafka/kraft/server.properties
+
 ```
 
 Start the broker:
 ```bash
 kafka-server-start /opt/homebrew/etc/kafka/kraft/server.properties > /tmp/kafka.log 2>&1 &
-echo "Kafka PID: $!"
+echo 'Kafka PID: '$!
 ```
 
 Verify (wait ~5 seconds):
@@ -99,7 +98,7 @@ export PATH=$CONFLUENT_HOME/bin:$PATH
 
 schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties \
   > /tmp/schema-registry.log 2>&1 &
-echo "Schema Registry PID: $!"
+echo 'Schema Registry PID: '$!
 ```
 
 Verify (wait ~10 seconds):
@@ -142,36 +141,36 @@ set -a && source $APP/.env.local && set +a
 # 1. user-service FIRST
 cd $APP/user-service && java -jar target/user-service-0.0.1-SNAPSHOT.jar \
   > /tmp/user-service.log 2>&1 &
-echo "user-service PID: $!"
+echo 'user-service PID: '$!
 sleep 20   # wait for DB init and Kafka schema registration
 
 # 2. These can start in any order
 cd $APP/connections-service && java -jar target/connections-service-0.0.1-SNAPSHOT.jar \
   > /tmp/connections-service.log 2>&1 &
-echo "connections-service PID: $!"
+echo 'connections-service PID: '$!
 
 cd $APP/posts-service && java -jar target/posts-service-0.0.1-SNAPSHOT.jar \
   > /tmp/posts-service.log 2>&1 &
-echo "posts-service PID: $!"
+echo 'posts-service PID: '$!
 
 cd $APP/spheres-service && node src/index.js \
   > /tmp/spheres-service.log 2>&1 &
-echo "spheres-service PID: $!"
+echo 'spheres-service PID: '$!
 
 cd $APP/messages-service && ./messages-service \
   > /tmp/messages-service.log 2>&1 &
-echo "messages-service PID: $!"
+echo 'messages-service PID: '$!
 
 cd $APP/notification-service && .venv/bin/uvicorn main:app --port 9070 \
   > /tmp/notification-service.log 2>&1 &
-echo "notification-service PID: $!"
+echo 'notification-service PID: '$!
 
 sleep 20
 
 # 3. api-gateway LAST
 cd $APP/api-gateway && java -jar target/api-gateway-0.0.1-SNAPSHOT.jar \
   > /tmp/api-gateway.log 2>&1 &
-echo "api-gateway PID: $!"
+echo 'api-gateway PID: '$!
 sleep 15
 ```
 
@@ -293,4 +292,8 @@ mongosh admin --eval "
 cd /Users/gowthamchava/Movies/CollabSphereApp/spheres-service
 node src/db/migrate.js
 node src/db/seed.js
+
+# Neo4j users seed (pulls from Postgres)
+cd /Users/gowthamchava/Movies/CollabSphereApp
+./scripts/seed-neo4j.sh
 ```

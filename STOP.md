@@ -27,9 +27,8 @@ pkill -f "vite"                            2>/dev/null && echo "UI stopped"
 pkill -f "schema-registry-start"  2>/dev/null && echo "Schema Registry stopped"
 pkill -f "kafka-server-start"     2>/dev/null && echo "Kafka stopped"
 
-# MongoDB (clean shutdown via mongod command)
-/opt/homebrew/Cellar/mongodb-community@4.4/4.4.21/bin/mongod \
-  --dbpath /opt/homebrew/var/mongodb --shutdown 2>/dev/null && echo "MongoDB stopped"
+# MongoDB (brew services)
+brew services stop mongodb-community@8.0 && echo "MongoDB stopped"
 
 # Neo4j and PostgreSQL (brew services)
 brew services stop neo4j           && echo "Neo4j stopped"
@@ -63,8 +62,7 @@ pkill -f "node src/index.js" 2>/dev/null; \
 pkill -f "vite" 2>/dev/null; \
 pkill -f "schema-registry-start" 2>/dev/null; \
 pkill -f "kafka-server-start" 2>/dev/null; \
-/opt/homebrew/Cellar/mongodb-community@4.4/4.4.21/bin/mongod \
-  --dbpath /opt/homebrew/var/mongodb --shutdown 2>/dev/null; \
+brew services stop mongodb-community@8.0 2>/dev/null; \
 brew services stop neo4j 2>/dev/null; \
 brew services stop postgresql@15 2>/dev/null; \
 echo "All stopped"

@@ -20,7 +20,7 @@ Once everything here is done, move to the `setup/` folder and follow the steps i
 | Python              | `python3.11 --version`                 | 3.11+    |
 | PostgreSQL          | `pg_isready -h localhost`              | 16+      |
 | Neo4j               | `curl -s http://localhost:7474`        | 5.x      |
-| MongoDB             | `mongosh --version`                    | 7.x      |
+| MongoDB             | `mongosh --version`                    | 8.x      |
 | Kafka               | `kafka-topics --version`               | 3.7+     |
 | Schema Registry     | `curl -s http://localhost:8081`        | 7.7+     |
 
@@ -318,7 +318,7 @@ mongosh --eval "db.adminCommand('ping').ok" --quiet
 - Prints `1` → running, nothing to do.
 - Prints error → not running:
   ```bash
-  brew services start mongodb-community@7.0
+  brew services start mongodb-community@8.0
   ```
   Wait 5 seconds, then check again.
 
@@ -326,8 +326,8 @@ mongosh --eval "db.adminCommand('ping').ok" --quiet
 
 ```bash
 brew tap mongodb/brew
-brew install mongodb-community@7.0
-brew services start mongodb-community@7.0
+brew install mongodb-community@8.0
+brew services start mongodb-community@8.0
 ```
 
 Verify:

@@ -16,7 +16,7 @@ mvn --version          # or: ./mvnw -v inside any Java service
 
 # Databases
 /opt/homebrew/opt/postgresql@15/bin/psql --version  # PostgreSQL 15
-/opt/homebrew/Cellar/mongodb-community@4.4/4.4.21/bin/mongod --version
+/opt/homebrew/opt/mongodb-community@8.0/bin/mongod --version
 neo4j --version
 kafka-server-start --version 2>/dev/null || /opt/homebrew/bin/kafka-topics --version
 
