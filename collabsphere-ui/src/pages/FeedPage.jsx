@@ -8,6 +8,7 @@ import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { OnboardingModal } from "../components/OnboardingModal.jsx";
 import { Spinner } from "../components/Spinner.jsx";
+import { SkeletonPosts } from "../components/Skeleton.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials, timeAgo } from "../utils/format.js";
 import { loadSavedIds, toggleSaved } from "../utils/saved.js";
@@ -505,9 +506,7 @@ export function FeedPage() {
         {error && <div className="notice notice--error">{error}</div>}
 
         {loading ? (
-          <div className="loading-panel">
-            <Spinner label="Loading posts" />
-          </div>
+          <SkeletonPosts count={3} />
         ) : sortedPosts.length === 0 ? (
           <EmptyState
             icon={Icons.Inbox}

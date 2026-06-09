@@ -18,6 +18,7 @@ import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { BrandOrb } from "../components/BrandOrb.jsx";
 import { Spinner } from "../components/Spinner.jsx";
+import { SkeletonCards } from "../components/Skeleton.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials, timeAgo } from "../utils/format.js";
 
@@ -394,7 +395,7 @@ export function SpheresPage() {
       {error && <div className="notice notice--error">{error}</div>}
 
       {loading ? (
-        <div className="loading-panel"><Spinner label="Loading spheres" /></div>
+        <SkeletonCards count={6} />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={Icons.Globe}

@@ -16,46 +16,48 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="sidebar">
+      <aside className="sidebar sidebar--rail">
         <nav className="nav-list" aria-label="Primary navigation">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
+              data-tip={label}
+              aria-label={label}
               className={({ isActive }) => `nav-item${isActive ? " is-active" : ""}`}
             >
               <Icon />
-              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="sidebar__footer">
-          <NavLink to="/profile" className="identity">
-            <div className="avatar">{initials(user?.name || user?.email)}</div>
-            <div className="identity__text">
-              <strong>{user?.name || "Member"}</strong>
-              <span>{user?.email}</span>
-            </div>
+          <NavLink
+            className="nav-item nav-item--cta"
+            to="/feed?create=true"
+            data-tip="Create Post"
+            aria-label="Create Post"
+          >
+            <Icons.Plus />
           </NavLink>
 
           <NavLink
-            className="button button--gradient button--block"
-            to="/feed?create=true"
-            style={{ marginTop: 10 }}
+            to="/profile"
+            className="rail-identity"
+            data-tip={user?.name || "Profile"}
+            aria-label="My profile"
           >
-            <Icons.Plus />
-            Create Post
+            <div className="avatar avatar--rail">{initials(user?.name || user?.email)}</div>
           </NavLink>
 
           <button
             className="nav-item nav-item--danger"
-            style={{ marginTop: 4 }}
             onClick={signOut}
             type="button"
+            data-tip="Sign out"
+            aria-label="Sign out"
           >
             <Icons.LogOut />
-            <span>Sign out</span>
           </button>
         </div>
       </aside>

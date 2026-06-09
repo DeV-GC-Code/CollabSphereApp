@@ -13,6 +13,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { Spinner } from "../components/Spinner.jsx";
+import { SkeletonRows } from "../components/Skeleton.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials } from "../utils/format.js";
 
@@ -264,7 +265,7 @@ export function NetworkPage() {
           {error && <div className="notice notice--error">{error}</div>}
 
           {loading ? (
-            <div className="loading-panel"><Spinner label="Loading people" /></div>
+            <SkeletonRows count={4} />
           ) : (
             <>
               <section className="network-section">
