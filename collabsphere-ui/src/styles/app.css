@@ -3827,3 +3827,15 @@ body::after {
 .auth-hero__headline { color: #FFFFFF !important; }
 .auth-hero__sub { color: rgba(226, 232, 240, 0.78) !important; }
 .auth-hero__brand-name { color: #FFFFFF !important; }
+
+/* Featured sphere cards — theme-aware text (cards use light glass in light mode) */
+.featured-sphere-card__name { color: var(--heading) !important; }
+.featured-sphere-card__desc { color: var(--text-soft) !important; }
+.featured-sphere-card__members { color: var(--text-muted) !important; }
+.featured-sphere-card__icon { background: var(--surface-soft) !important; color: var(--primary) !important; }
+.featured-sphere-card__btn {
+  background: var(--surface-soft) !important;
+  border-color: var(--outline-strong) !important;
+  color: var(--primary) !important;
+}
+.featured-sphere-card:hover { box-shadow: var(--shadow-xl), inset 0 1px 0 var(--liquid-highlight); }
