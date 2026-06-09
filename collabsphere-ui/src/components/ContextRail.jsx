@@ -32,6 +32,16 @@ export function ContextRail({ connectionsCount = 0, postsCount = 0 }) {
       <section className="rail-card">
         <div className="rail-card__header">
           <h2>Network Pulse</h2>
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => navigate("/network")}
+            aria-label="View network"
+            title="View network"
+            style={{ width: 28, height: 28 }}
+          >
+            <Icons.ArrowRight />
+          </button>
         </div>
         <div className="metric-grid">
           <div>
@@ -47,7 +57,7 @@ export function ContextRail({ connectionsCount = 0, postsCount = 0 }) {
 
       <section className="rail-card">
         <div className="rail-card__header">
-          <h2>Trending Topics</h2>
+          <h2>Trending Spheres</h2>
           <button
             className="button button--secondary button--sm"
             type="button"

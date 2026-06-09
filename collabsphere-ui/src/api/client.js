@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const REQUEST_TIMEOUT_MS = 12000;
 
 export class ApiError extends Error {
   constructor(message, status, details) {
@@ -38,12 +39,38 @@ export async function request(path, { method = "GET", body, token, signal } = {}
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    signal,
-  });
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort(signal?.reason);
+  const timeoutId = window.setTimeout(() => controller.abort("timeout"), REQUEST_TIMEOUT_MS);
+
+  if (signal?.aborted) abortFromCaller();
+  else signal?.addEventListener("abort", abortFromCaller, { once: true });
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      throw new ApiError(
+        controller.signal.reason === "timeout"
+          ? "Request timed out. Please try again."
+          : "Request was cancelled.",
+        408,
+      );
+    }
+    if (err instanceof TypeError) {
+      throw new ApiError("Service unavailable. Please try again.", 503);
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+    signal?.removeEventListener("abort", abortFromCaller);
+  }
 
   const payload = await parseResponse(response).catch(() => null);
 

@@ -60,30 +60,47 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:7474/
 
 ## 4. Kafka
 
-> Uses KRaft mode (no ZooKeeper). Run once on first use to format storage.
+> Uses KRaft mode (no ZooKeeper). Format storage only on first install, or after intentionally wiping corrupted Kafka metadata.
 
 ```bash
-#Wiped the corrupted Kafka metadata directory:
+# Confirm the broker advertises only the client listener.
+# In KRaft mode, advertised.listeners must NOT include CONTROLLER://localhost:9093.
+grep '^advertised.listeners=' /opt/homebrew/etc/kafka/kraft/server.properties
 
-rm -rf /opt/homebrew/var/lib/kraft-combined-logs
+# If it includes CONTROLLER, fix it before starting Kafka:
+perl -0pi -e 's#^advertised\.listeners=.*#advertised.listeners=PLAINTEXT://localhost:9092#m' \
+  /opt/homebrew/etc/kafka/kraft/server.properties
+```
 
-# First-time only — format the KRaft log directory
-# (Using tail -n 1 to filter out any JVM startup logs)
+First-time setup only:
+
+```bash
 CLUSTER_ID=$(kafka-storage random-uuid)
 kafka-storage format -t "$CLUSTER_ID" -c /opt/homebrew/etc/kafka/kraft/server.properties
-
 ```
 
 Start the broker:
+
 ```bash
 kafka-server-start /opt/homebrew/etc/kafka/kraft/server.properties > /tmp/kafka.log 2>&1 &
 echo 'Kafka PID: '$!
 ```
 
 Verify (wait ~5 seconds):
+
 ```bash
+/opt/homebrew/bin/kafka-topics --bootstrap-server localhost:9092 --list >/dev/null && echo "Kafka: OK"
 /opt/homebrew/bin/kafka-topics --bootstrap-server localhost:9092 --list
-# (no output = running correctly, no topics yet)
+```
+
+Recovery only if Kafka metadata is actually corrupted:
+
+```bash
+# This deletes all local Kafka topics/messages. Do not run as a normal startup step.
+rm -rf /opt/homebrew/var/lib/kraft-combined-logs
+
+CLUSTER_ID=$(kafka-storage random-uuid)
+kafka-storage format -t "$CLUSTER_ID" -c /opt/homebrew/etc/kafka/kraft/server.properties
 ```
 
 ---
@@ -102,9 +119,11 @@ echo 'Schema Registry PID: '$!
 ```
 
 Verify (wait ~10 seconds):
+
 ```bash
 curl -s http://localhost:8081/subjects
-# []
+# Fresh install: []
+# Existing local data: ["accept-connection-topic-value", ...]
 ```
 
 ---

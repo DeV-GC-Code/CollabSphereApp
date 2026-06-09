@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { ContextRail } from "../components/ContextRail.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
+import { OnboardingModal } from "../components/OnboardingModal.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials, timeAgo } from "../utils/format.js";
@@ -13,6 +14,7 @@ import { loadSavedIds, toggleSaved } from "../utils/saved.js";
 
 export function FeedPage() {
   const { token, user, signOut } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("cs_onboarding_done"));
   const [posts, setPosts] = useState([]);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
@@ -349,11 +351,13 @@ export function FeedPage() {
   };
 
   return (
+    <>
+    {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
     <div className="flow-layout">
       <div className="flow-main">
         <header className="page-header">
           <div>
-            <h1>Home</h1>
+            <h1>Feed</h1>
           </div>
           <button
             className="icon-button"
@@ -518,7 +522,7 @@ export function FeedPage() {
               const author = authorFor(post.userId);
               const comments = commentsByPostId.get(post.id) || [];
               return (
-                <article className="post-card" key={post.id}>
+                <article className="post-card post-card--accented" key={post.id}>
                   <header className="post-card__header">
                     <div className="avatar">{initials(author.name)}</div>
                     <div>
@@ -565,9 +569,9 @@ export function FeedPage() {
                     );
                   })()}
 
-                  <footer className="post-card__footer">
+                  <footer className="post-card__footer post-card__footer--polished">
                     <button
-                      className={`action-button${liked ? " is-liked" : ""}`}
+                      className={`action-button action-button--lg${liked ? " is-liked" : ""}`}
                       onClick={() => toggleLike(post.id)}
                       type="button"
                       aria-pressed={liked}
@@ -576,7 +580,7 @@ export function FeedPage() {
                       <span>{liked ? "Liked" : "Like"}</span>
                     </button>
                     <button
-                      className="action-button"
+                      className="action-button action-button--lg"
                       type="button"
                       onClick={() => toggleComments(post.id)}
                       aria-expanded={openComments.has(post.id)}
@@ -585,7 +589,7 @@ export function FeedPage() {
                       <span>{openComments.has(post.id) ? "Hide" : "Comment"}</span>
                     </button>
                     <button
-                      className={`action-button${saved ? " is-saved" : ""}`}
+                      className={`action-button action-button--lg${saved ? " is-saved" : ""}`}
                       type="button"
                       onClick={() => handleToggleSave(post)}
                       aria-pressed={saved}
@@ -654,5 +658,6 @@ export function FeedPage() {
         tone={toast.toLowerCase().includes("unable") ? "error" : "neutral"}
       />
     </div>
+    </>
   );
 }

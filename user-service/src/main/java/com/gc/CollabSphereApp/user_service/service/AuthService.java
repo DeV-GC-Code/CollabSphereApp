@@ -68,7 +68,17 @@ public class AuthService {
                 .setEmail(savedUser.getEmail())
                 .setWorksAt(savedUser.getWorksAt())
                 .build();
-        kafkaTemplate.send(userCreatedTopic, savedUser.getId(), event);
+        try {
+            kafkaTemplate.send(userCreatedTopic, savedUser.getId(), event)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.warn("Unable to publish UserCreatedEvent for user {}: {}",
+                                    savedUser.getId(), ex.getMessage());
+                        }
+                    });
+        } catch (Exception ex) {
+            log.warn("Skipping UserCreatedEvent publish for user {}: {}", savedUser.getId(), ex.getMessage());
+        }
         return modelMapper.map(savedUser, UserDto.class);
     }
 

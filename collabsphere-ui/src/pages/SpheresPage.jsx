@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
+import { Sphere3D } from "../components/Sphere3D.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials, timeAgo } from "../utils/format.js";
@@ -272,32 +273,76 @@ export function SpheresPage() {
     return isAdmin || membership?.role === "owner" || membership?.role === "moderator";
   };
 
+  // ── Category helpers ────────────────────────────────────────────────────────
+  const ENG_TAGS = new Set(["backend","frontend","devops","kubernetes","microservices","cloud","docker","aws","api","java","python","node","go","react"]);
+  const DESIGN_TAGS = new Set(["design","ux","ui","figma","css","wireframe","prototype"]);
+  const PRODUCT_TAGS = new Set(["product","growth","analytics","data","agile","strategy"]);
+
+  const categorize = (sphere) => {
+    const tags = Array.isArray(sphere.tags) ? sphere.tags.map((t) => t.toLowerCase()) : [];
+    if (tags.some((t) => ENG_TAGS.has(t))) return "Engineering";
+    if (tags.some((t) => DESIGN_TAGS.has(t))) return "Design";
+    if (tags.some((t) => PRODUCT_TAGS.has(t))) return "Product";
+    return "All Topics";
+  };
+
+  const featuredSpheres = visible.slice(0, 3);
+  const remainingSpheres = visible.slice(3);
+
+  const FEAT_GRADIENTS = [
+    "linear-gradient(135deg, #064E3B 0%, #0D9488 100%)",
+    "linear-gradient(135deg, #1E3A8A 0%, #7C3AED 100%)",
+    "linear-gradient(135deg, #134E4A 0%, #15803D 100%)",
+  ];
+
+  const categoryGroups = remainingSpheres.reduce((acc, sphere) => {
+    const cat = categorize(sphere);
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(sphere);
+    return acc;
+  }, {});
+  const CAT_ORDER = ["Engineering", "Design", "Product", "All Topics"];
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="page page--wide">
-      <header className="page-header">
-        <div>
-          <h1>Spheres</h1>
-          <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 14 }}>
+      {/* ── Interactive Sphere Hero ──────────────────────────────── */}
+      <div className="spheres-hero">
+        <div className="spheres-hero__content">
+          <h1 className="spheres-hero__title">Spheres</h1>
+          <p className="spheres-hero__sub">
             {mine.length
-              ? `You've joined ${mine.length} sphere${mine.length > 1 ? "s" : ""}`
-              : "Discover communities and join the conversation"}
+              ? `You're part of ${mine.length} sphere${mine.length > 1 ? "s" : ""} · Join more communities below`
+              : "Discover communities, join conversations, and build your professional tribe"}
           </p>
+          <div className="spheres-hero__stats">
+            <div>
+              <strong>{spheres.length || "—"}</strong>
+              <span>Communities</span>
+            </div>
+            <div>
+              <strong>{mine.length || 0}</strong>
+              <span>Joined</span>
+            </div>
+          </div>
+          <div className="spheres-hero__actions">
+            <button
+              className="button button--primary button--sm"
+              type="button"
+              onClick={() => setShowCreateForm((v) => !v)}
+            >
+              <Icons.Plus /> New Sphere
+            </button>
+            <button className="icon-button" type="button" onClick={loadSpheres} aria-label="Refresh">
+              <Icons.Refresh />
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className="button button--primary button--sm"
-            type="button"
-            onClick={() => setShowCreateForm((v) => !v)}
-          >
-            <Icons.Plus /> New Sphere
-          </button>
-          <button className="icon-button" type="button" onClick={loadSpheres} aria-label="Refresh">
-            <Icons.Refresh />
-          </button>
+        <div className="spheres-hero__viz" aria-hidden="true">
+          <Sphere3D size={220} />
         </div>
-      </header>
+      </div>
 
       {showCreateForm && (
         <form className="sphere-create-form" onSubmit={submitSphere}>
@@ -357,43 +402,142 @@ export function SpheresPage() {
           detail={filter === "Joined" ? "Join a sphere from the full list." : "Create a sphere or try a different search."}
         />
       ) : (
-        <section className="sphere-discover-grid" aria-label="Spheres">
-          {visible.map((sphere, index) => {
-            const isJoined = joinedIds.has(sphere.id);
-            const busy = workingId === sphere.id;
-            const tags = Array.isArray(sphere.tags) ? sphere.tags : [];
-            return (
-              <article
-                key={sphere.id}
-                className={`sphere-card sphere-card--${sphere.banner_color || palette[index % palette.length]}`}
-                onClick={() => openHub(sphere)}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="sphere-card__icon-row">
-                  <div className="rail-card__icon"><Icons.Hub /></div>
-                  <span className="sphere-card__members">
-                    <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
-                  </span>
-                </div>
-                <div>
-                  <h2 style={{ marginBottom: 6 }}>{sphere.name}</h2>
-                  <p style={{ fontSize: 13 }}>{sphere.description || "No description provided."}</p>
-                </div>
-                <div className="person-card__tags" style={{ gap: 6 }}>
-                  {tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 11 }}>#{tag}</span>)}
-                </div>
-                <button
-                  className={`button${isJoined ? " button--secondary" : " button--primary"}`}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleJoin(sphere); }}
-                  disabled={busy}
-                >
-                  {busy ? <Spinner label="Updating" /> : isJoined ? <><Icons.Check /> Joined</> : <><Icons.Plus /> Join</>}
-                </button>
-              </article>
-            );
-          })}
-        </section>
+        <>
+          {/* ── Featured Spheres ────────────────────────────────── */}
+          {featuredSpheres.length > 0 && (
+            <section aria-label="Featured Spheres">
+              <h2 className="spheres-section-title">
+                <Icons.Spark /> Featured Spheres
+              </h2>
+              <div className="featured-spheres-row">
+                {featuredSpheres.map((sphere, idx) => {
+                  const isJoined = joinedIds.has(sphere.id);
+                  const busy = workingId === sphere.id;
+                  return (
+                    <article
+                      key={sphere.id}
+                      className="featured-sphere-card"
+                      style={{ background: FEAT_GRADIENTS[idx % FEAT_GRADIENTS.length], cursor: "pointer" }}
+                      onClick={() => openHub(sphere)}
+                    >
+                      <div className="featured-sphere-card__top">
+                        <div className="featured-sphere-card__icon"><Icons.Hub /></div>
+                        <span className="featured-sphere-card__members">
+                          <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
+                        </span>
+                      </div>
+                      <h3 className="featured-sphere-card__name">{sphere.name}</h3>
+                      <p className="featured-sphere-card__desc">{sphere.description || "A great community to join."}</p>
+                      <button
+                        className={`button button--sm featured-sphere-card__btn${isJoined ? "" : " button--primary"}`}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleJoin(sphere); }}
+                        disabled={busy}
+                      >
+                        {busy ? <Spinner label="Updating" /> : isJoined ? <><Icons.Check /> Joined</> : <><Icons.Plus /> Join</>}
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* ── Categorized remaining spheres ────────────────── */}
+          {remainingSpheres.length > 0 && (
+            <>
+              {CAT_ORDER.filter((cat) => categoryGroups[cat]?.length > 0).map((cat) => (
+                <section key={cat} aria-label={cat}>
+                  <h2 className="spheres-section-title">
+                    {cat === "Engineering" && <Icons.Code />}
+                    {cat === "Design" && <Icons.Layers />}
+                    {cat === "Product" && <Icons.TrendingUp />}
+                    {cat === "All Topics" && <Icons.Globe />}
+                    {cat}
+                  </h2>
+                  <div className="sphere-discover-grid">
+                    {categoryGroups[cat].map((sphere, index) => {
+                      const isJoined = joinedIds.has(sphere.id);
+                      const busy = workingId === sphere.id;
+                      const tags = Array.isArray(sphere.tags) ? sphere.tags : [];
+                      return (
+                        <article
+                          key={sphere.id}
+                          className={`sphere-card sphere-card--${sphere.banner_color || palette[index % palette.length]}`}
+                          onClick={() => openHub(sphere)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <div className="sphere-card__icon-row">
+                            <div className="rail-card__icon"><Icons.Hub /></div>
+                            <span className="sphere-card__members">
+                              <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
+                            </span>
+                          </div>
+                          <div>
+                            <h2 style={{ marginBottom: 6 }}>{sphere.name}</h2>
+                            <p style={{ fontSize: 13 }}>{sphere.description || "No description provided."}</p>
+                          </div>
+                          <div className="person-card__tags" style={{ gap: 6 }}>
+                            {tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 11 }}>#{tag}</span>)}
+                          </div>
+                          <button
+                            className={`button${isJoined ? " button--secondary" : " button--primary"}`}
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleJoin(sphere); }}
+                            disabled={busy}
+                          >
+                            {busy ? <Spinner label="Updating" /> : isJoined ? <><Icons.Check /> Joined</> : <><Icons.Plus /> Join</>}
+                          </button>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </>
+          )}
+
+          {/* Fallback: if no remaining spheres (all 3 or fewer total), show standard grid */}
+          {remainingSpheres.length === 0 && featuredSpheres.length === 0 && (
+            <section className="sphere-discover-grid" aria-label="Spheres">
+              {visible.map((sphere, index) => {
+                const isJoined = joinedIds.has(sphere.id);
+                const busy = workingId === sphere.id;
+                const tags = Array.isArray(sphere.tags) ? sphere.tags : [];
+                return (
+                  <article
+                    key={sphere.id}
+                    className={`sphere-card sphere-card--${sphere.banner_color || palette[index % palette.length]}`}
+                    onClick={() => openHub(sphere)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="sphere-card__icon-row">
+                      <div className="rail-card__icon"><Icons.Hub /></div>
+                      <span className="sphere-card__members">
+                        <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
+                      </span>
+                    </div>
+                    <div>
+                      <h2 style={{ marginBottom: 6 }}>{sphere.name}</h2>
+                      <p style={{ fontSize: 13 }}>{sphere.description || "No description provided."}</p>
+                    </div>
+                    <div className="person-card__tags" style={{ gap: 6 }}>
+                      {tags.map((tag) => <span key={tag} className="chip" style={{ fontSize: 11 }}>#{tag}</span>)}
+                    </div>
+                    <button
+                      className={`button${isJoined ? " button--secondary" : " button--primary"}`}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toggleJoin(sphere); }}
+                      disabled={busy}
+                    >
+                      {busy ? <Spinner label="Updating" /> : isJoined ? <><Icons.Check /> Joined</> : <><Icons.Plus /> Join</>}
+                    </button>
+                  </article>
+                );
+              })}
+            </section>
+          )}
+        </>
       )}
 
       {/* ── Sphere Hub Overlay ────────────────────────────────── */}

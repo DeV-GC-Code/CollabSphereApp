@@ -1,269 +1,261 @@
 import { useEffect, useRef } from "react";
 
-// ── Module-level constants — computed once, never GC'd ─────────────────────
+const POINTS = 5200;
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-const ORBIT_PARAMS = [
-  [0,              0],
-  [Math.PI * 0.28, 0],
-  [Math.PI * 0.55, 0],
-  [Math.PI * 0.28, Math.PI / 2],
-  [Math.PI * 0.55, Math.PI * 0.67],
-  [Math.PI * 0.5,  Math.PI / 4],
-];
-
-const STEPS = 90; // quality/perf sweet-spot
-
-// Build each orbit once as a Float32Array [x0,y0,z0, x1,y1,z1, ...]
-// on the unit sphere, in its final orientation.
-function buildOrbitBase(inc, yaw) {
-  const ci = Math.cos(inc), si = Math.sin(inc);
-  const cy = Math.cos(yaw), sy = Math.sin(yaw);
-  const buf = new Float32Array((STEPS + 1) * 3);
-  for (let i = 0; i <= STEPS; i++) {
-    const t = (i / STEPS) * Math.PI * 2;
-    const x0 = Math.cos(t), z0 = Math.sin(t);
-    // tilt around Z axis (inclination)
-    const x1 = x0 * ci, y1 = x0 * si, z1 = z0;
-    // yaw around Y axis
-    buf[i * 3]     = x1 * cy + z1 * sy;
-    buf[i * 3 + 1] = y1;
-    buf[i * 3 + 2] = -x1 * sy + z1 * cy;
-  }
-  return buf;
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1103515245 + 12345) >>> 0;
+    return s / 4294967296;
+  };
 }
 
-const BASE_ORBITS = ORBIT_PARAMS.map(([inc, yaw]) => buildOrbitBase(inc, yaw));
+function normalize([x, y, z]) {
+  const length = Math.hypot(x, y, z) || 1;
+  return [x / length, y / length, z / length];
+}
 
-// Pre-compute exact 3D crossing points analytically (no runtime O(n²) detection).
-// The normal to orbit (inc,yaw) is the transformed Y-axis:
-//   n = (-sin(inc)*cos(yaw),  cos(inc),  sin(inc)*sin(yaw))
-// The crossings of two great circles are ±normalize(n₁ × n₂).
-const SPARKLE_BASES = (() => {
-  const normal = (inc, yaw) => [
-    -Math.sin(inc) * Math.cos(yaw),
-     Math.cos(inc),
-     Math.sin(inc) * Math.sin(yaw),
-  ];
-  const cross = ([ax,ay,az], [bx,by,bz]) => [
-    ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx,
-  ];
-  const norm = ([x,y,z]) => {
-    const l = Math.hypot(x, y, z);
-    return l < 1e-9 ? [x,y,z] : [x/l, y/l, z/l];
-  };
+const BAND_A = normalize([0.36, 0.48, 0.80]);
+const BAND_B = normalize([-0.68, 0.24, 0.70]);
+const BAND_C = normalize([0.18, 0.94, -0.28]);
+const ORBITS = [
+  { normal: BAND_A, front: "rgba(118,229,255,0.72)", back: "rgba(56,189,248,0.22)", width: 2.2, phase: -0.1 },
+  { normal: BAND_B, front: "rgba(134,255,181,0.62)", back: "rgba(74,222,128,0.18)", width: 1.8, phase: 0.22 },
+  { normal: BAND_C, front: "rgba(198,255,220,0.42)", back: "rgba(74,222,128,0.12)", width: 1.25, phase: 0.44 },
+];
 
-  const pts = [];
-  for (let i = 0; i < ORBIT_PARAMS.length; i++) {
-    for (let j = i + 1; j < ORBIT_PARAMS.length; j++) {
-      const c = norm(cross(normal(...ORBIT_PARAMS[i]), normal(...ORBIT_PARAMS[j])));
-      if (Math.hypot(...c) > 0.5) {
-        pts.push(c, [-c[0], -c[1], -c[2]]);
-      }
-    }
+const CLOUD = (() => {
+  const rand = seededRandom(9);
+  const x = new Float32Array(POINTS);
+  const y = new Float32Array(POINTS);
+  const z = new Float32Array(POINTS);
+  const size = new Float32Array(POINTS);
+  const brightness = new Float32Array(POINTS);
+  const phase = new Float32Array(POINTS);
+  const speed = new Float32Array(POINTS);
+  const cyan = new Float32Array(POINTS);
+  const green = new Float32Array(POINTS);
+  const sparkle = new Uint8Array(POINTS);
+
+  for (let i = 0; i < POINTS; i += 1) {
+    const yy = 1 - (i / (POINTS - 1)) * 2;
+    const radius = Math.sqrt(Math.max(0, 1 - yy * yy));
+    const theta = GOLDEN_ANGLE * i;
+    const xx = Math.cos(theta) * radius;
+    const zz = Math.sin(theta) * radius;
+    const cyanI = Math.max(0, 1 - Math.abs(xx * BAND_A[0] + yy * BAND_A[1] + zz * BAND_A[2]) / 0.31);
+    const greenI = Math.max(
+      0,
+      1 - Math.min(
+        Math.abs(xx * BAND_B[0] + yy * BAND_B[1] + zz * BAND_B[2]) / 0.15,
+        Math.abs(xx * BAND_C[0] + yy * BAND_C[1] + zz * BAND_C[2]) / 0.12,
+      ),
+    );
+    const band = Math.max(cyanI, greenI);
+    const r = rand();
+
+    x[i] = xx;
+    y[i] = yy;
+    z[i] = zz;
+    cyan[i] = cyanI;
+    green[i] = greenI;
+    brightness[i] = 0.44 + rand() * 0.56 + band * 0.24;
+    phase[i] = rand() * Math.PI * 2;
+    speed[i] = 0.009 + rand() * 0.026;
+    size[i] = r < 0.72 ? 0.3 + rand() * 0.55 : r < 0.93 ? 0.72 + rand() * 0.95 : 1.8 + rand() * 2.6;
+    sparkle[i] = size[i] > 1.75 || (band > 0.82 && rand() > 0.94) ? 1 : 0;
   }
-  return pts; // at most 30 fixed 3D crossing points
-})();
 
-// ── Component ──────────────────────────────────────────────────────────────
+  return { x, y, z, size, brightness, phase, speed, cyan, green, sparkle };
+})();
 
 export function Sphere3D({ size = 320 }) {
   const canvasRef = useRef(null);
   const stateRef = useRef({
-    rotX: 0, rotY: 0,
-    velX: 0.0009, velY: 0.0015,
-    mouse: null,        // { x, y } in canvas px
-    energy: 0,          // 0–1, decays after click
-    breathPhase: 0,     // drives subtle scale oscillation
+    rotX: -0.12,
+    rotY: 0.4,
+    velX: 0.0005,
+    velY: 0.0032,
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+    pointerX: 0,
+    pointerY: 0,
+    energy: 0,
+    tick: 0,
   });
   const rafRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
 
     const ctx = canvas.getContext("2d");
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width  = size * dpr;
-    canvas.height = size * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = "round";
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const cx = size / 2, cy = size / 2;
-    const R  = size * 0.36;
+    const cx = size / 2;
+    const cy = size / 2;
+    const baseRadius = size * 0.42;
+    const drawCount = size < 250 ? 3600 : POINTS;
 
-    // Pre-allocated projection buffers — never reallocated
-    const px = new Float32Array(STEPS + 1);
-    const py = new Float32Array(STEPS + 1);
-    const pz = new Float32Array(STEPS + 1);
+    function drawOrbit(orbit, rotX, rotY, radius, energy) {
+      const [nx, ny, nz] = orbit.normal;
+      const basisA = normalize(Math.abs(ny) < 0.94 ? [ny, -nx, 0] : [0, nz, -ny]);
+      const basisB = [
+        ny * basisA[2] - nz * basisA[1],
+        nz * basisA[0] - nx * basisA[2],
+        nx * basisA[1] - ny * basisA[0],
+      ];
+      const cY = Math.cos(rotY + orbit.phase);
+      const sY = Math.sin(rotY + orbit.phase);
+      const cX = Math.cos(rotX);
+      const sX = Math.sin(rotX);
 
-    // Project one orbit into px/py/pz using current global rotation + effective radius
-    function projectOrbit(base, cY, sY, cX, sX, Reff) {
-      for (let k = 0; k <= STEPS; k++) {
-        const bx = base[k * 3], by = base[k * 3 + 1], bz = base[k * 3 + 2];
-        const x1 = bx * cY + bz * sY;
-        const z1 = -bx * sY + bz * cY;
-        const y2 = by * cX - z1 * sX;
-        const z2 = by * sX + z1 * cX;
-        const sc = Reff * (2.6 / (2.2 + z2));
-        px[k] = cx + x1 * sc;
-        py[k] = cy + y2 * sc;
-        pz[k] = z2;
+      for (let pass = 0; pass < 2; pass += 1) {
+        ctx.beginPath();
+        let pen = false;
+        for (let step = 0; step <= 112; step += 1) {
+          const t = (step / 112) * Math.PI * 2;
+          const bx = basisA[0] * Math.cos(t) + basisB[0] * Math.sin(t);
+          const by = basisA[1] * Math.cos(t) + basisB[1] * Math.sin(t);
+          const bz = basisA[2] * Math.cos(t) + basisB[2] * Math.sin(t);
+          const x1 = bx * cY + bz * sY;
+          const z1 = -bx * sY + bz * cY;
+          const y1 = by * cX - z1 * sX;
+          const z2 = by * sX + z1 * cX;
+          const front = z2 < -0.02;
+          if ((pass === 1) !== front) {
+            pen = false;
+            continue;
+          }
+          const scale = radius * (1.46 / (2.08 + z2));
+          const sx = cx + x1 * scale;
+          const sy = cy - y1 * scale;
+          if (pen) ctx.lineTo(sx, sy);
+          else {
+            ctx.moveTo(sx, sy);
+            pen = true;
+          }
+        }
+        ctx.strokeStyle = pass === 1 ? orbit.front : orbit.back;
+        ctx.lineWidth = (pass === 1 ? orbit.width : orbit.width * 0.5) + energy * 1.2;
+        ctx.lineCap = "round";
+        ctx.stroke();
       }
     }
 
-    // Build a 2D canvas path for just the front OR back hemisphere of the current orbit.
-    // Uses moveTo/lineTo to handle discontinuities without creating any arrays.
-    function buildHemispherePath(front) {
-      ctx.beginPath();
-      let pen = false;
-      for (let k = 0; k <= STEPS; k++) {
-        if ((pz[k] < 0) === front) {
-          if (pen) ctx.lineTo(px[k], py[k]);
-          else { ctx.moveTo(px[k], py[k]); pen = true; }
+    function drawPoint(sx, sy, alpha, drawSize, depth, cyanI, greenI, sparkle, tick, phase, speed) {
+      const band = Math.max(cyanI, greenI);
+      const twinkle = 0.74 + 0.26 * Math.sin(phase + tick * speed);
+
+      if (sparkle && depth > 0.5 && alpha > 0.08) {
+        const haloSize = drawSize * (cyanI > 0.1 ? 7.2 : 5.6);
+        const halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, haloSize);
+        if (cyanI > greenI) {
+          halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.86, alpha * 1.55)})`);
+          halo.addColorStop(0.22, `rgba(166,238,255,${alpha})`);
+          halo.addColorStop(0.62, `rgba(56,189,248,${alpha * 0.32})`);
+          halo.addColorStop(1, "rgba(56,189,248,0)");
         } else {
-          pen = false;
+          halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.82, alpha * 1.45)})`);
+          halo.addColorStop(0.24, `rgba(190,255,215,${alpha})`);
+          halo.addColorStop(0.64, `rgba(74,222,128,${alpha * 0.32})`);
+          halo.addColorStop(1, "rgba(74,222,128,0)");
         }
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(sx, sy, haloSize, 0, Math.PI * 2);
+        ctx.fill();
       }
+
+      if (cyanI > 0.02) {
+        const c = Math.min(1, cyanI);
+        ctx.fillStyle = `rgba(${Math.round(78 + c * 84)},${Math.round(193 + c * 50)},255,${alpha * (0.8 + c * 0.45)})`;
+      } else if (greenI > 0.02) {
+        const g = Math.min(1, greenI);
+        ctx.fillStyle = `rgba(${Math.round(95 + g * 98)},${Math.round(219 + g * 36)},${Math.round(137 + g * 70)},${alpha * (0.78 + g * 0.38)})`;
+      } else {
+        ctx.fillStyle = `rgba(${Math.round(50 + depth * 70)},${Math.round(181 + depth * 46)},${Math.round(102 + band * 70)},${alpha * 0.72})`;
+      }
+
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.max(0.36, drawSize * twinkle), 0, Math.PI * 2);
+      ctx.fill();
     }
 
     function draw() {
       const st = stateRef.current;
+      st.tick += 1;
+      st.energy = Math.max(0, st.energy - 0.017);
 
-      // ── Physics ──────────────────────────────────────────────
-      st.breathPhase += 0.007;
-      st.energy = Math.max(0, st.energy - 0.016); // ~60-frame decay
-
-      const breathScale = 1 + Math.sin(st.breathPhase) * 0.018 + st.energy * 0.05;
-
-      if (st.mouse) {
-        st.velX += ((st.mouse.y - cy) * 0.000055 - st.velX) * 0.08;
-        st.velY += ((st.mouse.x - cx) * 0.000055 - st.velY) * 0.08;
-      } else {
-        st.velX += (0.0009 - st.velX) * 0.04;
-        st.velY += (0.0015 - st.velY) * 0.04;
+      if (!st.dragging) {
+        st.velX += (st.pointerY * -0.0009 + 0.0005 - st.velX) * 0.035;
+        st.velY += (st.pointerX * 0.0012 + 0.0032 - st.velY) * 0.04;
       }
-      st.rotX += st.velX;
+      st.rotX = Math.max(-0.58, Math.min(0.5, st.rotX + st.velX));
       st.rotY += st.velY;
+
+      const radius = baseRadius * (1 + Math.sin(st.tick * 0.024) * 0.014 + st.energy * 0.05);
+      const cY = Math.cos(st.rotY);
+      const sY = Math.sin(st.rotY);
+      const cX = Math.cos(st.rotX);
+      const sX = Math.sin(st.rotX);
 
       ctx.clearRect(0, 0, size, size);
 
-      // ── Pre-compute rotation trig once per frame ─────────────
-      const cY = Math.cos(st.rotY), sY = Math.sin(st.rotY);
-      const cX = Math.cos(st.rotX), sX = Math.sin(st.rotX);
-
-      // ── Atmosphere glow (shifts toward cursor) ────────────────
-      const mx = st.mouse ? st.mouse.x : cx;
-      const my = st.mouse ? st.mouse.y : cy;
-      const atmR = R * breathScale * 1.22;
-      const gx = cx + (mx - cx) * 0.15, gy = cy + (my - cy) * 0.15;
-      const atm = ctx.createRadialGradient(gx, gy, atmR * 0.28, cx, cy, atmR);
-      atm.addColorStop(0, `rgba(52,211,153,${0.07 + st.energy * 0.13})`);
-      atm.addColorStop(0.55, `rgba(52,211,153,${0.02 + st.energy * 0.03})`);
-      atm.addColorStop(1,   "rgba(52,211,153,0)");
-      ctx.fillStyle = atm;
+      const glow = ctx.createRadialGradient(cx - radius * 0.25, cy - radius * 0.2, radius * 0.12, cx, cy, radius * 1.55);
+      glow.addColorStop(0, `rgba(112,255,174,${0.22 + st.energy * 0.22})`);
+      glow.addColorStop(0.42, `rgba(45,212,191,${0.08 + st.energy * 0.08})`);
+      glow.addColorStop(1, "rgba(45,212,191,0)");
+      ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(cx, cy, atmR, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 1.55, 0, Math.PI * 2);
       ctx.fill();
 
-      // ── Orbits — batched paths, no shadowBlur ─────────────────
-      const Reff = R * breathScale;
+      ORBITS.slice(1).forEach((orbit) => drawOrbit(orbit, st.rotX, st.rotY, radius, st.energy));
 
-      for (let oi = 0; oi < BASE_ORBITS.length; oi++) {
-        projectOrbit(BASE_ORBITS[oi], cY, sY, cX, sX, Reff);
+      for (let pass = 0; pass < 2; pass += 1) {
+        const frontPass = pass === 1;
+        for (let i = 0; i < drawCount; i += 1) {
+          const x1 = CLOUD.x[i] * cY + CLOUD.z[i] * sY;
+          const z1 = -CLOUD.x[i] * sY + CLOUD.z[i] * cY;
+          const y1 = CLOUD.y[i] * cX - z1 * sX;
+          const z2 = CLOUD.y[i] * sX + z1 * cX;
+          const front = z2 < -0.025;
+          if (frontPass !== front) continue;
 
-        // Back hemisphere — single dim stroke
-        buildHemispherePath(false);
-        ctx.strokeStyle = "rgba(52,211,153,0.15)";
-        ctx.lineWidth = 1.1;
-        ctx.stroke();
+          const scale = radius * (1.46 / (2.08 + z2));
+          const sx = cx + x1 * scale;
+          const sy = cy - y1 * scale;
+          const dist = Math.hypot(sx - cx, sy - cy);
+          const edge = Math.pow(Math.max(0, 1 - dist / (radius * 1.04)), 0.36);
+          if (edge < 0.014) continue;
 
-        // Front hemisphere — three strokes on the SAME compiled path:
-        // 1. Wide diffuse glow  2. Mid glow  3. Bright core
-        buildHemispherePath(true);
+          const depth = (1 - z2) * 0.5;
+          const band = Math.max(CLOUD.cyan[i], CLOUD.green[i]);
+          const backBoost = !frontPass && band > 0.04 ? 0.35 : 0.11;
+          const depthAlpha = frontPass ? 0.44 + depth * 0.9 : backBoost + depth * 0.14;
+          const alpha = edge * depthAlpha * CLOUD.brightness[i] * (0.88 + st.energy * 0.38);
+          if (alpha < 0.012) continue;
 
-        ctx.strokeStyle = `rgba(40,200,130,${0.17 + st.energy * 0.22})`;
-        ctx.lineWidth = 7 + st.energy * 5;
-        ctx.stroke();
-
-        ctx.strokeStyle = `rgba(90,220,160,${0.42 + st.energy * 0.28})`;
-        ctx.lineWidth = 3.0 + st.energy * 2;
-        ctx.stroke();
-
-        ctx.strokeStyle = `rgba(180,248,210,${0.90 + st.energy * 0.10})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-
-      // ── Sparkle intersections — pre-computed 3D, just project ─
-      for (const [bx, by, bz] of SPARKLE_BASES) {
-        // Apply same global rotation
-        const x1 = bx * cY + bz * sY;
-        const z1 = -bx * sY + bz * cY;
-        const y2 = by * cX - z1 * sX;
-        const z2 = by * sX + z1 * cX;
-        if (z2 > 0.05) continue; // skip back-facing
-        const alpha = Math.max(0, 0.95 + z2 * (-1.8));
-        const sc = Reff * (2.6 / (2.2 + z2));
-        const spx = cx + x1 * sc, spy = cy + y2 * sc;
-
-        // Three layered arcs — no radial gradient, no shadowBlur
-        ctx.beginPath();
-        ctx.arc(spx, spy, 5.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(52,211,153,${alpha * (0.22 + st.energy * 0.28)})`;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(spx, spy, 2.8, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,243,208,${alpha * (0.65 + st.energy * 0.22)})`;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(spx, spy, 1.1, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${alpha * (0.88 + st.energy * 0.12)})`;
-        ctx.fill();
-      }
-
-      // ── Click ripple ring ─────────────────────────────────────
-      if (st.energy > 0.02) {
-        const rippleR = R * breathScale * (1 + (1 - st.energy) * 0.55);
-        ctx.beginPath();
-        ctx.arc(cx, cy, rippleR, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(100,230,170,${st.energy * 0.45})`;
-        ctx.lineWidth = st.energy * 2.5;
-        ctx.stroke();
-
-        if (st.energy > 0.5) {
-          const rippleR2 = R * breathScale * (1 + (1 - st.energy) * 0.25);
-          ctx.beginPath();
-          ctx.arc(cx, cy, rippleR2, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(167,243,208,${(st.energy - 0.5) * 0.5})`;
-          ctx.lineWidth = (st.energy - 0.5) * 3;
-          ctx.stroke();
+          const drawSize = CLOUD.size[i] * (0.42 + depth * 0.8 + band * 0.15);
+          drawPoint(sx, sy, alpha, drawSize, depth, CLOUD.cyan[i], CLOUD.green[i], CLOUD.sparkle[i], st.tick, CLOUD.phase[i], CLOUD.speed[i]);
         }
       }
 
-      // ── Custom crosshair cursor ───────────────────────────────
-      if (st.mouse) {
-        const { x: hx, y: hy } = st.mouse;
-        const dist = Math.hypot(hx - cx, hy - cy);
-        const insideSphere = dist < R * breathScale * 1.05;
-        const cursorAlpha = insideSphere ? 0.9 : 0.55;
+      drawOrbit(ORBITS[0], st.rotX, st.rotY, radius, st.energy);
 
-        // Dot
+      if (st.energy > 0.02) {
         ctx.beginPath();
-        ctx.arc(hx, hy, insideSphere ? 3.5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(167,243,208,${cursorAlpha})`;
-        ctx.fill();
-
-        // Crosshair lines
-        const arm = insideSphere ? 10 : 7, gap = insideSphere ? 5 : 3.5;
-        ctx.strokeStyle = `rgba(167,243,208,${cursorAlpha * 0.65})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(hx - arm, hy); ctx.lineTo(hx - gap, hy);
-        ctx.moveTo(hx + gap,  hy); ctx.lineTo(hx + arm, hy);
-        ctx.moveTo(hx, hy - arm); ctx.lineTo(hx, hy - gap);
-        ctx.moveTo(hx, hy + gap);  ctx.lineTo(hx, hy + arm);
+        ctx.arc(cx, cy, radius * (1.02 + (1 - st.energy) * 0.46), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(110,255,181,${st.energy * 0.52})`;
+        ctx.lineWidth = 1.4 + st.energy * 3;
         ctx.stroke();
       }
 
@@ -274,23 +266,48 @@ export function Sphere3D({ size = 320 }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [size]);
 
-  const rect = () => canvasRef.current?.getBoundingClientRect();
-
-  const onMouseMove  = (e) => { const r = rect(); if (r) stateRef.current.mouse = { x: e.clientX - r.left, y: e.clientY - r.top }; };
-  const onMouseLeave = ()  => { stateRef.current.mouse = null; };
-  const onClick      = ()  => { stateRef.current.energy = 1; };
-  const onTouchMove  = (e) => { const r = rect(), t = e.touches[0]; if (r && t) stateRef.current.mouse = { x: t.clientX - r.left, y: t.clientY - r.top }; };
-  const onTouchEnd   = ()  => { stateRef.current.mouse = null; };
-
   return (
     <canvas
       ref={canvasRef}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-      onClick={onClick}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={{ display: "block", cursor: "none", touchAction: "none" }}
+      onPointerDown={(event) => {
+        const st = stateRef.current;
+        st.dragging = true;
+        st.lastX = event.clientX;
+        st.lastY = event.clientY;
+        st.velX = 0;
+        st.velY = 0;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        event.currentTarget.style.cursor = "grabbing";
+      }}
+      onPointerUp={(event) => {
+        stateRef.current.dragging = false;
+        event.currentTarget.style.cursor = "grab";
+      }}
+      onPointerLeave={() => {
+        const st = stateRef.current;
+        st.dragging = false;
+        st.pointerX = 0;
+        st.pointerY = 0;
+      }}
+      onPointerMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const st = stateRef.current;
+        st.pointerX = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+        st.pointerY = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+        if (!st.dragging) return;
+        const dx = event.clientX - st.lastX;
+        const dy = event.clientY - st.lastY;
+        st.rotY += dx * 0.008;
+        st.rotX += dy * 0.006;
+        st.velY = dx * 0.0045;
+        st.velX = dy * 0.0035;
+        st.lastX = event.clientX;
+        st.lastY = event.clientY;
+      }}
+      onClick={() => {
+        stateRef.current.energy = 1;
+      }}
+      style={{ display: "block", cursor: "grab", touchAction: "none" }}
       aria-hidden="true"
     />
   );

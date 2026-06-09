@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { getStats, login, signup } from "../api/auth.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { Sphere3D } from "../components/Sphere3D.jsx";
+import { GlobeViz } from "../components/GlobeViz.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { Spinner } from "../components/Spinner.jsx";
-import { ThemeToggle } from "../components/ThemeToggle.jsx";
 
 const EMPTY = { name: "", email: "", password: "", worksAt: "" };
 
@@ -18,7 +17,7 @@ function validatePassword(pwd) {
 }
 
 export function AuthPage() {
-  const [mode, setMode] = useState("signup");
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState(EMPTY);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -77,8 +76,7 @@ export function AuthPage() {
   };
 
   return (
-    <div className="auth-split" style={{ position: "relative" }}>
-      <ThemeToggle className="auth-floating-toggle" />
+    <div className="auth-split">
 
       {/* ── LEFT — Hero ──────────────────────────────────────── */}
       <aside className="auth-hero">
@@ -91,12 +89,11 @@ export function AuthPage() {
           <span className="auth-hero__brand-name">CollabSphere</span>
         </div>
 
-        {/* Center block — sphere + copy vertically centered together */}
+        {/* Center — full globe + copy, vertically centered */}
         <div className="auth-hero__center">
           <div className="auth-hero__viz">
-            <Sphere3D size={320} />
+            <GlobeViz size={480} />
           </div>
-
           <div className="auth-hero__copy">
             <h1 className="auth-hero__headline">
               Where ideas <span className="hero-accent">collide</span><br />
@@ -105,19 +102,6 @@ export function AuthPage() {
             <p className="auth-hero__sub">
               The professional community for engineers, designers, and product thinkers.
             </p>
-            <div className="auth-hero__stats">
-              {memberCount !== null && (
-                <>
-                  <span>{memberCount.toLocaleString()} members</span>
-                  <span className="stat-sep" />
-                </>
-              )}
-              <span>Engineers</span>
-              <span className="stat-sep" />
-              <span>Designers</span>
-              <span className="stat-sep" />
-              <span>PMs</span>
-            </div>
           </div>
         </div>
 
@@ -125,85 +109,80 @@ export function AuthPage() {
 
       {/* ── RIGHT — Form ─────────────────────────────────────── */}
       <main className="auth-form-side">
-        <div className="auth-form-card">
+        <div className="auth-glass-card">
 
-          <div className="auth-form-card__header">
-            <div>
-              <h2 className="auth-form-card__title">
-                {isSignup ? "Create your account" : "Welcome back"}
-              </h2>
-              <p className="auth-form-card__sub">
-                {isSignup ? "Free forever · no credit card needed" : "Sign in to continue to CollabSphere"}
-              </p>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="auth-tabs" role="tablist">
-            <button
-              className={`auth-tab${mode === "signup" ? " active" : ""}`}
-              type="button" role="tab" aria-selected={mode === "signup"}
-              onClick={() => switchMode("signup")}
-            >Sign up</button>
-            <button
-              className={`auth-tab${mode === "login" ? " active" : ""}`}
-              type="button" role="tab" aria-selected={mode === "login"}
-              onClick={() => switchMode("login")}
-            >Log in</button>
-          </div>
+          <h2 className="auth-glass-card__title">
+            {isSignup ? "Create account" : "Sign in"}
+          </h2>
+          <p className="auth-glass-card__sub">
+            {isSignup ? "Free forever · no credit card needed" : "or create an account"}
+          </p>
 
           {error   && <div className="notice notice--error"   role="alert">{error}</div>}
           {message && <div className="notice notice--success" role="status">{message}</div>}
 
-          <form className="form" onSubmit={submit} noValidate>
+          <form className="auth-glass-form" onSubmit={submit} noValidate>
             {isSignup && (
               <>
-                <label>
-                  <span>Full name</span>
-                  <input value={form.name} onChange={set("name")} autoComplete="name" placeholder="Jane Smith" required />
-                </label>
-                <label>
-                  <span>Company / School</span>
-                  <input value={form.worksAt} onChange={set("worksAt")} autoComplete="organization" placeholder="Acme Corp" required />
-                </label>
+                <div className="auth-field">
+                  <input
+                    value={form.name}
+                    onChange={set("name")}
+                    autoComplete="name"
+                    placeholder="Full name"
+                    required
+                  />
+                </div>
+                <div className="auth-field">
+                  <input
+                    value={form.worksAt}
+                    onChange={set("worksAt")}
+                    autoComplete="organization"
+                    placeholder="Company / School"
+                    required
+                  />
+                </div>
               </>
             )}
 
-            <label>
-              <span>Email address</span>
-              <input type="email" value={form.email} onChange={set("email")} autoComplete="email" placeholder="jane@acme.com" required />
-            </label>
+            <div className="auth-field">
+              <input
+                type="email"
+                value={form.email}
+                onChange={set("email")}
+                autoComplete="email"
+                placeholder="Email address"
+                required
+              />
+            </div>
 
-            <label>
-              <span>Password</span>
-              <div className="password-field">
-                <input
-                  type={showPwd ? "text" : "password"}
-                  value={form.password}
-                  onChange={set("password")}
-                  autoComplete={isSignup ? "new-password" : "current-password"}
-                  placeholder={isSignup ? "Create a strong password" : "Your password"}
-                  required
-                  style={{ width: "100%" }}
-                />
-                <button
-                  type="button"
-                  className="password-field__toggle"
-                  onClick={() => setShowPwd((v) => !v)}
-                  aria-label={showPwd ? "Hide password" : "Show password"}
-                >
-                  {showPwd ? <Icons.EyeOff /> : <Icons.Eye />}
-                </button>
-              </div>
-              {isSignup && (
-                <p className="auth-pwd-hint">
-                  Min 8 chars · no spaces · 1 uppercase · 1 number
-                </p>
-              )}
-            </label>
+            <div className="auth-field auth-field--password">
+              <input
+                type={showPwd ? "text" : "password"}
+                value={form.password}
+                onChange={set("password")}
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                placeholder="Password"
+                required
+              />
+              <button
+                type="button"
+                className="auth-pwd-toggle"
+                onClick={() => setShowPwd((v) => !v)}
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? <Icons.EyeOff /> : <Icons.Eye />}
+              </button>
+            </div>
+
+            {isSignup && (
+              <p className="auth-pwd-hint">
+                Min 8 chars · no spaces · 1 uppercase · 1 number
+              </p>
+            )}
 
             <button
-              className="button button--primary button--block auth-submit"
+              className="auth-btn auth-btn--primary"
               type="submit"
               disabled={loading}
             >
@@ -217,16 +196,13 @@ export function AuthPage() {
             </button>
           </form>
 
-          <p className="auth-switch">
-            {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button
-              type="button"
-              className="auth-switch__link"
-              onClick={() => switchMode(isSignup ? "login" : "signup")}
-            >
-              {isSignup ? "Sign in" : "Create a free account"}
-            </button>
-          </p>
+          <button
+            type="button"
+            className="auth-btn auth-btn--outline"
+            onClick={() => switchMode(isSignup ? "login" : "signup")}
+          >
+            {isSignup ? "Sign in instead" : "Create account"}
+          </button>
 
         </div>
       </main>

@@ -73,24 +73,6 @@ export function ProfilePage() {
     }
   };
 
-  const installUIUXSkills = () => {
-    const bundle = [
-      "Figma",
-      "UI/UX Design",
-      "Wireframing",
-      "User Research",
-      "Information Architecture",
-      "Prototyping",
-      "Design Systems",
-      "Interaction Design",
-      "Usability Testing"
-    ];
-    // Merge without duplicates
-    const merged = Array.from(new Set([...skills, ...bundle]));
-    saveSkills(merged);
-    showToast("UI/UX Designer Skill Pack installed!");
-  };
-
   const handleAddSkill = (e) => {
     e.preventDefault();
     const clean = newSkill.trim();
@@ -136,11 +118,11 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="page page--wide">
+    <div className="page page--wide profile-page">
       <section className="profile-hero">
-        <div className="profile-hero__banner" />
+        <div className="profile-hero__banner profile-hero__banner--gradient" />
         <div className="profile-hero__content">
-          <div className="profile-hero__avatar">{initials(user?.name || user?.email)}</div>
+          <div className="profile-hero__avatar profile-hero__avatar--glow">{initials(user?.name || user?.email)}</div>
           <h1>{user?.name || "CollabSphere Member"}</h1>
           {user?.worksAt && (
             <p style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 4 }}>
@@ -168,6 +150,45 @@ export function ProfilePage() {
         </div>
       </section>
 
+      {/* ── My Stats Card ───────────────────────────────────── */}
+      {!loading && (
+        <section className="profile-stats-card glass-card">
+          <h3 className="profile-stats-card__title">My Stats</h3>
+          <div className="profile-stats-bars">
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Send />
+                <span>Posts</span>
+                <strong>{postCount ?? 0}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--posts" style={{ width: `${Math.min(100, (postCount || 0) * 10)}%` }} />
+              </div>
+            </div>
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Network />
+                <span>Connections</span>
+                <strong>{connectionCount ?? 0}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--connections" style={{ width: `${Math.min(100, (connectionCount || 0) * 5)}%` }} />
+              </div>
+            </div>
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Hub />
+                <span>Spheres</span>
+                <strong>{joinedSpheres.length}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--spheres" style={{ width: `${Math.min(100, joinedSpheres.length * 12)}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="profile-grid">
         <article className="glass-card profile-grid__wide">
           <h2>About</h2>
@@ -192,17 +213,10 @@ export function ProfilePage() {
           {skills.length === 0 ? (
             <div className="skills-installer-banner">
               <p>
-                <strong>Install UI/UX Designer Core Skills!</strong>
+                <strong>Add your first skills.</strong>
                 <br />
-                Seed your profile immediately with a professional set of design skills including Figma, Wireframing, and Design Systems.
+                Highlight the tools, domains, and strengths you want collaborators to discover.
               </p>
-              <button
-                className="button button--primary button--sm"
-                type="button"
-                onClick={installUIUXSkills}
-              >
-                <Icons.Spark style={{ marginRight: 6 }} /> Install UI/UX Designer Pack
-              </button>
             </div>
           ) : (
             <div className="skills-grid">
@@ -219,19 +233,6 @@ export function ProfilePage() {
                   </button>
                 </span>
               ))}
-            </div>
-          )}
-
-          {skills.length > 0 && skills.length < 5 && (
-            <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-start" }}>
-              <button
-                className="button button--secondary button--sm"
-                type="button"
-                style={{ background: "rgba(13, 148, 136, 0.05)", color: "var(--accent)" }}
-                onClick={installUIUXSkills}
-              >
-                <Icons.Spark style={{ marginRight: 6 }} /> Merge UI/UX Designer Pack
-              </button>
             </div>
           )}
 
@@ -292,7 +293,7 @@ export function ProfilePage() {
               <Spinner label="Loading stats" />
             </div>
           ) : (
-            <div className="metric-strip" style={{ marginTop: 8, gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="metric-strip" style={{ marginTop: 8 }}>
               <div>
                 <strong>{connectionCount ?? "—"}</strong>
                 <span>Connections</span>
