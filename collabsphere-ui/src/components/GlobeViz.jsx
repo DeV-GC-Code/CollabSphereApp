@@ -109,7 +109,7 @@ export function GlobeViz({ size = 460 }) {
       const haloEligible = isSparkle && depth > 0.52 && alpha > 0.14;
 
       if (haloEligible) {
-        const haloSize = drawSize * (cyanI > 0.2 ? 8.5 : 6.2);
+        const haloSize = drawSize * (cyanI > 0.2 ? 6.0 : 4.6);
         const halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, haloSize);
         if (cyanI > greenI) {
           halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.78, alpha * 1.2)})`);
@@ -118,9 +118,9 @@ export function GlobeViz({ size = 460 }) {
           halo.addColorStop(1, "rgba(32,105,255,0)");
         } else {
           halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.72, alpha * 1.12)})`);
-          halo.addColorStop(0.18, `rgba(202,255,224,${alpha * 0.7})`);
-          halo.addColorStop(0.52, `rgba(74,222,128,${alpha * 0.28})`);
-          halo.addColorStop(1, "rgba(22,163,74,0)");
+          halo.addColorStop(0.18, `rgba(221,214,254,${alpha * 0.7})`);
+          halo.addColorStop(0.52, `rgba(139,92,246,${alpha * 0.28})`);
+          halo.addColorStop(1, "rgba(109,40,217,0)");
         }
         ctx.fillStyle = halo;
         ctx.beginPath();
@@ -133,9 +133,9 @@ export function GlobeViz({ size = 460 }) {
         ctx.fillStyle = `rgba(${Math.round(70 + c * 90)},${Math.round(190 + c * 52)},255,${alpha * (0.62 + c * 0.24)})`;
       } else if (greenI > 0.01 || meridianI > 0.01) {
         const g = Math.max(greenI, meridianI);
-        ctx.fillStyle = `rgba(${Math.round(90 + g * 120)},${Math.round(225 + g * 28)},${Math.round(138 + g * 70)},${alpha * (0.58 + g * 0.22)})`;
+        ctx.fillStyle = `rgba(${Math.round(150 + g * 46)},${Math.round(120 + g * 60)},250,${alpha * (0.58 + g * 0.22)})`;
       } else {
-        ctx.fillStyle = `rgba(${Math.round(54 + depth * 75)},${Math.round(185 + depth * 46)},${Math.round(105 + band * 70)},${alpha * 0.46})`;
+        ctx.fillStyle = `rgba(${Math.round(120 + depth * 60)},${Math.round(130 + depth * 50)},${Math.round(230 + band * 25)},${alpha * 0.46})`;
       }
 
       ctx.beginPath();
@@ -213,22 +213,22 @@ export function GlobeViz({ size = 460 }) {
       ctx.clearRect(0, 0, size, size);
 
       const atmosphere = ctx.createRadialGradient(cx - r * 0.24, cy - r * 0.18, r * 0.16, cx, cy, r * 1.55);
-      atmosphere.addColorStop(0, `rgba(95,255,165,${0.16 + st.energy * 0.18})`);
-      atmosphere.addColorStop(0.36, `rgba(24,210,118,${0.07 + st.energy * 0.06})`);
-      atmosphere.addColorStop(0.66, "rgba(20,184,166,0.03)");
-      atmosphere.addColorStop(1, "rgba(20,184,166,0)");
+      atmosphere.addColorStop(0, `rgba(165,180,252,${0.16 + st.energy * 0.18})`);
+      atmosphere.addColorStop(0.36, `rgba(99,102,241,${0.07 + st.energy * 0.06})`);
+      atmosphere.addColorStop(0.66, "rgba(79,70,229,0.03)");
+      atmosphere.addColorStop(1, "rgba(79,70,229,0)");
       ctx.fillStyle = atmosphere;
       ctx.beginPath();
       ctx.arc(cx, cy, r * 1.58, 0, Math.PI * 2);
       ctx.fill();
 
       drawOrbit(st.rotX, st.rotY, GREEN_BAND, {
-        front: `rgba(117,255,161,${0.46 + st.energy * 0.28})`,
-        back: "rgba(74,222,128,0.18)",
+        front: `rgba(167,139,250,${0.46 + st.energy * 0.28})`,
+        back: "rgba(139,92,246,0.18)",
       }, 2.4 + st.energy * 1.4, 0);
       drawOrbit(st.rotX, st.rotY, MERIDIAN_BAND, {
-        front: `rgba(181,255,209,${0.36 + st.energy * 0.24})`,
-        back: "rgba(74,222,128,0.13)",
+        front: `rgba(199,210,254,${0.36 + st.energy * 0.24})`,
+        back: "rgba(139,92,246,0.13)",
       }, 1.6 + st.energy, 0.36);
 
       for (let pass = 0; pass < 2; pass += 1) {
@@ -270,7 +270,7 @@ export function GlobeViz({ size = 460 }) {
         const ripple = r * (1.02 + (1 - st.energy) * 0.52);
         ctx.beginPath();
         ctx.arc(cx, cy, ripple, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(110,255,180,${st.energy * 0.58})`;
+        ctx.strokeStyle = `rgba(165,180,252,${st.energy * 0.58})`;
         ctx.lineWidth = 2 + st.energy * 3.5;
         ctx.stroke();
       }

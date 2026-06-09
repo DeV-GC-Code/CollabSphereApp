@@ -21,8 +21,8 @@ const BAND_B = normalize([-0.68, 0.24, 0.70]);
 const BAND_C = normalize([0.18, 0.94, -0.28]);
 const ORBITS = [
   { normal: BAND_A, front: "rgba(118,229,255,0.72)", back: "rgba(56,189,248,0.22)", width: 2.2, phase: -0.1 },
-  { normal: BAND_B, front: "rgba(134,255,181,0.62)", back: "rgba(74,222,128,0.18)", width: 1.8, phase: 0.22 },
-  { normal: BAND_C, front: "rgba(198,255,220,0.42)", back: "rgba(74,222,128,0.12)", width: 1.25, phase: 0.44 },
+  { normal: BAND_B, front: "rgba(196,181,253,0.62)", back: "rgba(139,92,246,0.18)", width: 1.8, phase: 0.22 },
+  { normal: BAND_C, front: "rgba(221,214,254,0.42)", back: "rgba(139,92,246,0.12)", width: 1.25, phase: 0.44 },
 ];
 
 const CLOUD = (() => {
@@ -155,7 +155,7 @@ export function Sphere3D({ size = 320 }) {
       const twinkle = 0.74 + 0.26 * Math.sin(phase + tick * speed);
 
       if (sparkle && depth > 0.5 && alpha > 0.08) {
-        const haloSize = drawSize * (cyanI > 0.1 ? 7.2 : 5.6);
+        const haloSize = drawSize * (cyanI > 0.1 ? 5.4 : 4.2);
         const halo = ctx.createRadialGradient(sx, sy, 0, sx, sy, haloSize);
         if (cyanI > greenI) {
           halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.86, alpha * 1.55)})`);
@@ -164,9 +164,9 @@ export function Sphere3D({ size = 320 }) {
           halo.addColorStop(1, "rgba(56,189,248,0)");
         } else {
           halo.addColorStop(0, `rgba(255,255,255,${Math.min(0.82, alpha * 1.45)})`);
-          halo.addColorStop(0.24, `rgba(190,255,215,${alpha})`);
-          halo.addColorStop(0.64, `rgba(74,222,128,${alpha * 0.32})`);
-          halo.addColorStop(1, "rgba(74,222,128,0)");
+          halo.addColorStop(0.24, `rgba(216,180,254,${alpha})`);
+          halo.addColorStop(0.64, `rgba(139,92,246,${alpha * 0.32})`);
+          halo.addColorStop(1, "rgba(139,92,246,0)");
         }
         ctx.fillStyle = halo;
         ctx.beginPath();
@@ -179,9 +179,9 @@ export function Sphere3D({ size = 320 }) {
         ctx.fillStyle = `rgba(${Math.round(78 + c * 84)},${Math.round(193 + c * 50)},255,${alpha * (0.8 + c * 0.45)})`;
       } else if (greenI > 0.02) {
         const g = Math.min(1, greenI);
-        ctx.fillStyle = `rgba(${Math.round(95 + g * 98)},${Math.round(219 + g * 36)},${Math.round(137 + g * 70)},${alpha * (0.78 + g * 0.38)})`;
+        ctx.fillStyle = `rgba(${Math.round(150 + g * 46)},${Math.round(120 + g * 60)},250,${alpha * (0.78 + g * 0.38)})`;
       } else {
-        ctx.fillStyle = `rgba(${Math.round(50 + depth * 70)},${Math.round(181 + depth * 46)},${Math.round(102 + band * 70)},${alpha * 0.72})`;
+        ctx.fillStyle = `rgba(${Math.round(120 + depth * 60)},${Math.round(130 + depth * 50)},${Math.round(230 + band * 25)},${alpha * 0.72})`;
       }
 
       ctx.beginPath();
@@ -210,9 +210,9 @@ export function Sphere3D({ size = 320 }) {
       ctx.clearRect(0, 0, size, size);
 
       const glow = ctx.createRadialGradient(cx - radius * 0.25, cy - radius * 0.2, radius * 0.12, cx, cy, radius * 1.55);
-      glow.addColorStop(0, `rgba(112,255,174,${0.22 + st.energy * 0.22})`);
-      glow.addColorStop(0.42, `rgba(45,212,191,${0.08 + st.energy * 0.08})`);
-      glow.addColorStop(1, "rgba(45,212,191,0)");
+      glow.addColorStop(0, `rgba(165,180,252,${0.22 + st.energy * 0.22})`);
+      glow.addColorStop(0.42, `rgba(99,102,241,${0.08 + st.energy * 0.08})`);
+      glow.addColorStop(1, "rgba(99,102,241,0)");
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 1.55, 0, Math.PI * 2);
@@ -254,7 +254,7 @@ export function Sphere3D({ size = 320 }) {
       if (st.energy > 0.02) {
         ctx.beginPath();
         ctx.arc(cx, cy, radius * (1.02 + (1 - st.energy) * 0.46), 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(110,255,181,${st.energy * 0.52})`;
+        ctx.strokeStyle = `rgba(165,180,252,${st.energy * 0.52})`;
         ctx.lineWidth = 1.4 + st.energy * 3;
         ctx.stroke();
       }

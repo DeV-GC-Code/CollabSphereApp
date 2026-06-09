@@ -17,13 +17,6 @@ export function Sidebar() {
   return (
     <>
       <aside className="sidebar">
-        <NavLink className="brand topbar__brand" to="/feed" style={{ textDecoration: "none" }}>
-          <div className="brand__mark">
-            <img src="/icon.png" alt="CollabSphere" />
-          </div>
-          <div className="brand__name">CollabSphere</div>
-        </NavLink>
-
         <nav className="nav-list" aria-label="Primary navigation">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink
