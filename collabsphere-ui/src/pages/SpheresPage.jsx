@@ -16,7 +16,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
-import { Sphere3D } from "../components/Sphere3D.jsx";
+import { BrandOrb } from "../components/BrandOrb.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials, timeAgo } from "../utils/format.js";
@@ -340,7 +340,7 @@ export function SpheresPage() {
           </div>
         </div>
         <div className="spheres-hero__viz" aria-hidden="true">
-          <Sphere3D size={220} />
+          <BrandOrb size={220} />
         </div>
       </div>
 

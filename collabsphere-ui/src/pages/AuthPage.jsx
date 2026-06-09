@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getStats, login, signup } from "../api/auth.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { GlobeViz } from "../components/GlobeViz.jsx";
+import { BrandOrb } from "../components/BrandOrb.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 
@@ -92,7 +92,7 @@ export function AuthPage() {
         {/* Center — full globe + copy, vertically centered */}
         <div className="auth-hero__center">
           <div className="auth-hero__viz">
-            <GlobeViz size={480} />
+            <BrandOrb size={440} />
           </div>
           <div className="auth-hero__copy">
             <h1 className="auth-hero__headline">
