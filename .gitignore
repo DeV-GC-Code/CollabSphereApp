@@ -86,7 +86,9 @@ __pycache__/
 
 
 #AI
-.kimichi
-.husky
-.claude
-.agent
+*.kimichi
+*.husky
+*.claude
+*.agent
+*.antigravity
+*.cursor
