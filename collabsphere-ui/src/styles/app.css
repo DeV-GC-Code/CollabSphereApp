@@ -4374,3 +4374,86 @@ body::after {
   font-weight: 700;
   color: var(--text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTH PAGE — theme-independent dark glass (renders identically
+   in light & dark mode; single continuous backdrop, no half-seam)
+═══════════════════════════════════════════════════════════════ */
+.auth-split { position: relative; }
+
+/* kill the per-half overlays that created two glow blobs + a seam */
+.auth-hero::before,
+.auth-form-side::before {
+  display: none !important;
+}
+
+/* one continuous overlay across the whole page */
+.auth-split::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(147, 197, 253, 0.030) 1px, transparent 1px),
+    linear-gradient(rgba(147, 197, 253, 0.026) 1px, transparent 1px),
+    radial-gradient(ellipse at 26% 38%, rgba(59, 130, 246, 0.20), transparent 46%),
+    radial-gradient(ellipse at 76% 62%, rgba(34, 211, 238, 0.07), transparent 40%);
+  background-size: 64px 64px, 64px 64px, auto, auto;
+}
+.auth-hero, .auth-form-side { position: relative; z-index: 1; }
+
+/* fixed dark glass card — identical in both themes */
+.auth-glass-card {
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05) 55%, rgba(59, 130, 246, 0.07)) !important;
+  border: 1px solid rgba(191, 219, 254, 0.20) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 30px 90px rgba(0, 0, 0, 0.50),
+    0 0 60px rgba(37, 99, 235, 0.10) !important;
+  backdrop-filter: blur(40px) saturate(1.7) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.7) !important;
+}
+
+.auth-glass-card__title { color: #FFFFFF !important; }
+.auth-glass-card__sub { color: rgba(203, 213, 225, 0.78) !important; }
+
+.auth-field input,
+.auth-glass-card .form input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(191, 219, 254, 0.18) !important;
+  color: #F1F5F9 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+.auth-field input::placeholder,
+.auth-glass-card .form input::placeholder {
+  color: rgba(203, 213, 225, 0.62) !important;
+}
+.auth-field input:focus,
+.auth-glass-card .form input:focus {
+  border-color: rgba(96, 165, 250, 0.65) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 0 3px rgba(59, 130, 246, 0.22) !important;
+}
+
+.auth-pwd-toggle { color: rgba(203, 213, 225, 0.66) !important; }
+.auth-pwd-toggle:hover { color: #BFDBFE !important; }
+.auth-pwd-hint { color: rgba(203, 213, 225, 0.60) !important; }
+
+.auth-btn--outline {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(191, 219, 254, 0.22) !important;
+  color: #F1F5F9 !important;
+}
+.auth-btn--outline:hover {
+  background: rgba(255, 255, 255, 0.13) !important;
+  border-color: rgba(147, 197, 253, 0.45) !important;
+  color: #FFFFFF !important;
+}
+
+/* theme toggle floating on auth page — readable on dark backdrop */
+.auth-split .theme-toggle,
+.auth-split .icon-button {
+  color: rgba(226, 232, 240, 0.85) !important;
+}
