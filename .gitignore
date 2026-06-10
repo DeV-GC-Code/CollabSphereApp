@@ -83,3 +83,10 @@ __pycache__/
 *.pyo
 .venv/
 **/.venv/
+
+
+#AI
+.kimichi
+.husky
+.claude
+.agent
