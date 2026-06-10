@@ -1,2 +1,2 @@
 #!/bin/sh
-pnpm --prefix webapp lint-staged
+# webapp removed; no pre-commit hooks currently configured
