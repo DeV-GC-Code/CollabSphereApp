@@ -138,9 +138,9 @@ export function ProfilePage() {
   return (
     <div className="page page--wide">
       <section className="profile-hero">
-        <div className="profile-hero__banner" />
+        <div className="profile-hero__banner profile-hero__banner--gradient" />
         <div className="profile-hero__content">
-          <div className="profile-hero__avatar">{initials(user?.name || user?.email)}</div>
+          <div className="profile-hero__avatar profile-hero__avatar--glow">{initials(user?.name || user?.email)}</div>
           <h1>{user?.name || "CollabSphere Member"}</h1>
           {user?.worksAt && (
             <p style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 4 }}>
@@ -167,6 +167,45 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
+
+      {/* ── My Stats Card ───────────────────────────────────── */}
+      {!loading && (
+        <section className="profile-stats-card glass-card">
+          <h3 className="profile-stats-card__title">My Stats</h3>
+          <div className="profile-stats-bars">
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Send />
+                <span>Posts</span>
+                <strong>{postCount ?? 0}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--posts" style={{ width: `${Math.min(100, (postCount || 0) * 10)}%` }} />
+              </div>
+            </div>
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Network />
+                <span>Connections</span>
+                <strong>{connectionCount ?? 0}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--connections" style={{ width: `${Math.min(100, (connectionCount || 0) * 5)}%` }} />
+              </div>
+            </div>
+            <div className="profile-stat-bar">
+              <div className="profile-stat-bar__label">
+                <Icons.Hub />
+                <span>Spheres</span>
+                <strong>{joinedSpheres.length}</strong>
+              </div>
+              <div className="profile-stat-bar__track">
+                <div className="profile-stat-bar__fill profile-stat-bar__fill--spheres" style={{ width: `${Math.min(100, joinedSpheres.length * 12)}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="profile-grid">
         <article className="glass-card profile-grid__wide">

@@ -42,6 +42,7 @@ export function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [convSearch, setConvSearch] = useState("");
   const endRef = useRef(null);
 
   const showToast = (message) => {
@@ -228,6 +229,15 @@ export function MessagesPage() {
             <strong>Inbox</strong>
             {loading && <Spinner label="Loading" />}
           </div>
+          <div className="conversation-list__search">
+            <Icons.Search />
+            <input
+              value={convSearch}
+              onChange={(e) => setConvSearch(e.target.value)}
+              placeholder="Search conversations…"
+              aria-label="Search conversations"
+            />
+          </div>
 
           {!loading && partners.length === 0 ? (
             <EmptyState
@@ -237,9 +247,12 @@ export function MessagesPage() {
             />
           ) : (
             <div className="conversation-list__items">
-              {partners.map((partner) => {
+              {partners
+                .filter((p) => !convSearch.trim() || (p.name || "").toLowerCase().includes(convSearch.toLowerCase()))
+                .map((partner, idx) => {
                 const active = Number(partner.userId) === Number(selectedPartnerId);
                 const conversation = partner.conversation;
+                const isOnline = idx < 3; // mock: first 3 are online
                 return (
                   <button
                     key={partner.userId}
@@ -247,7 +260,10 @@ export function MessagesPage() {
                     type="button"
                     onClick={() => selectPartner(partner.userId)}
                   >
-                    <span className="conversation-item__avatar">{initials(partner.name || partner.email)}</span>
+                    <span className="conversation-item__avatar-wrap">
+                      <span className="conversation-item__avatar">{initials(partner.name || partner.email)}</span>
+                      <span className={`online-dot${isOnline ? " online-dot--active" : ""}`} aria-hidden="true" />
+                    </span>
                     <span className="conversation-item__body">
                       <strong>{partner.name || `Member ${partner.userId}`}</strong>
                       <span>{messagePreview(conversation?.lastMessage)}</span>
@@ -288,7 +304,7 @@ export function MessagesPage() {
                     const mine = Number(message.senderId) === Number(user?.id);
                     return (
                       <div key={message.id} className={`message-bubble-row${mine ? " message-bubble-row--mine" : ""}`}>
-                        <article className="message-bubble">
+                        <article className={`message-bubble${mine ? " message-bubble--sent" : " message-bubble--received"}`}>
                           <p>{message.content}</p>
                           <time>{timeAgo(message.createdAt)}</time>
                         </article>
