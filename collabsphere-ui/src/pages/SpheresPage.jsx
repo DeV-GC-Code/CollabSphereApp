@@ -83,7 +83,14 @@ export function SpheresPage() {
         return { all, joined };
       });
       if (!data) return;
-      setSpheres(Array.isArray(data.all) ? data.all : []);
+      const raw = Array.isArray(data.all) ? data.all : [];
+      const seen = new Set();
+      setSpheres(raw.filter((s) => {
+        const k = `${s.name}|${s.description || ""}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      }));
       setMine(Array.isArray(data.joined) ? data.joined : []);
     } catch (err) {
       setError(err.message || "Unable to load spheres");

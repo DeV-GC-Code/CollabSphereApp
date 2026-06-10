@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { initials } from "../utils/format.js";
+import { CreatePostModal } from "./CreatePostModal.jsx";
 import { Icons } from "./Icons.jsx";
 
 const NAV = [
@@ -13,54 +15,56 @@ const NAV = [
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
+  const [composeOpen, setComposeOpen] = useState(false);
 
   return (
     <>
-      <aside className="sidebar sidebar--rail">
-        <nav className="nav-list" aria-label="Primary navigation">
-          {NAV.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              data-tip={label}
-              aria-label={label}
-              className={({ isActive }) => `nav-item${isActive ? " is-active" : ""}`}
-            >
-              <Icon />
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="sidebar__footer">
+      <nav className="dock" aria-label="Primary navigation">
+        {NAV.map(({ to, label, icon: Icon }) => (
           <NavLink
-            className="nav-item nav-item--cta"
-            to="/feed?create=true"
-            data-tip="Create Post"
-            aria-label="Create Post"
+            key={to}
+            to={to}
+            data-tip={label}
+            aria-label={label}
+            className={({ isActive }) => `dock__item${isActive ? " is-active" : ""}`}
           >
-            <Icons.Plus />
+            <Icon />
           </NavLink>
+        ))}
 
-          <NavLink
-            to="/profile"
-            className="rail-identity"
-            data-tip={user?.name || "Profile"}
-            aria-label="My profile"
-          >
-            <div className="avatar avatar--rail">{initials(user?.name || user?.email)}</div>
-          </NavLink>
+        <span className="dock__sep" aria-hidden="true" />
 
-          <button
-            className="nav-item nav-item--danger"
-            onClick={signOut}
-            type="button"
-            data-tip="Sign out"
-            aria-label="Sign out"
-          >
-            <Icons.LogOut />
-          </button>
-        </div>
-      </aside>
+        <button
+          className="dock__item dock__item--cta"
+          type="button"
+          onClick={() => setComposeOpen(true)}
+          data-tip="Create Post"
+          aria-label="Create Post"
+        >
+          <Icons.Plus />
+        </button>
+
+        <NavLink
+          to="/profile"
+          className="dock__item dock__item--avatar"
+          data-tip={user?.name || "Profile"}
+          aria-label="My profile"
+        >
+          <span className="avatar avatar--dock">{initials(user?.name || user?.email)}</span>
+        </NavLink>
+
+        <button
+          className="dock__item dock__item--danger"
+          onClick={signOut}
+          type="button"
+          data-tip="Sign out"
+          aria-label="Sign out"
+        >
+          <Icons.LogOut />
+        </button>
+      </nav>
+
+      {composeOpen && <CreatePostModal onClose={() => setComposeOpen(false)} />}
 
       <nav className="mobile-nav" aria-label="Mobile navigation">
         {NAV.map(({ to, label, icon: Icon }) => (

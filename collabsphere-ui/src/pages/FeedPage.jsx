@@ -79,6 +79,12 @@ export function FeedPage() {
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
+  useEffect(() => {
+    const refresh = () => loadPosts();
+    window.addEventListener("cs:feed-refresh", refresh);
+    return () => window.removeEventListener("cs:feed-refresh", refresh);
+  }, [loadPosts]);
+
   // Handle Create Post focus trigger from Sidebar
   useEffect(() => {
     if (searchParams.get("create") === "true") {
