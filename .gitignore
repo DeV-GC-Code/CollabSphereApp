@@ -85,10 +85,12 @@ __pycache__/
 **/.venv/
 
 
-#AI
-*.kimichi
-*.husky
-*.claude
-*.agent
-*.antigravity
-*.cursor
+# AI / Agent tooling
+.kimchi/
+.claude/
+.agent/
+.antigravity/
+.cursor/
+
+# Husky (was only used for deleted webapp; empty hook removed)
+.husky/
