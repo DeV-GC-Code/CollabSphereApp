@@ -1,6 +1,6 @@
 package com.gc.CollabSphereApp.connections_service.controller;
 
-import com.gc.CollabSphereApp.connections_service.entity.Person;
+import com.gc.CollabSphereApp.connections_service.dto.PersonConnectionDto;
 import com.gc.CollabSphereApp.connections_service.service.ConnectionsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,19 +15,24 @@ public class ConnectionsController {
 
     private final ConnectionsService connectionsService;
 
-    @GetMapping("/first-degree")
-    public ResponseEntity<List<Person>> getFirstConnections() {
-        return ResponseEntity.ok(connectionsService.getFirstDegreeConnections());
+    @GetMapping("/people")
+    public ResponseEntity<List<PersonConnectionDto>> searchPeople(@RequestParam(required = false) String query) {
+        return ResponseEntity.ok(connectionsService.searchPeople(query));
     }
 
-    @GetMapping("/second-degree")
-    public ResponseEntity<List<Person>> getSecondDegreeConnections() {
-        return ResponseEntity.ok(connectionsService.getSecondDegreeConnections());
+    @GetMapping("/connections")
+    public ResponseEntity<List<PersonConnectionDto>> getConnections() {
+        return ResponseEntity.ok(connectionsService.getConnections());
     }
 
-    @GetMapping("/third-degree")
-    public ResponseEntity<List<Person>> getThirdDegreeConnections() {
-        return ResponseEntity.ok(connectionsService.getThirdDegreeConnections());
+    @GetMapping("/requests/received")
+    public ResponseEntity<List<PersonConnectionDto>> getReceivedRequests() {
+        return ResponseEntity.ok(connectionsService.getReceivedRequests());
+    }
+
+    @GetMapping("/requests/sent")
+    public ResponseEntity<List<PersonConnectionDto>> getSentRequests() {
+        return ResponseEntity.ok(connectionsService.getSentRequests());
     }
 
     @PostMapping("/request/{userId}")

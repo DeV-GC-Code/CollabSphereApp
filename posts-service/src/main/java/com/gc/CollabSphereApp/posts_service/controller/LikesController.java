@@ -23,5 +23,4 @@ public class LikesController {
         postLikeService.unlikePost(postId);
         return ResponseEntity.noContent().build();
     }
-
 }

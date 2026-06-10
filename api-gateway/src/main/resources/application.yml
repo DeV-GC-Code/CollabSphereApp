@@ -3,16 +3,32 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "${CORS_ALLOWED_ORIGIN:}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            maxAge: 3600
       routes:
         - id: user-service
-          uri: lb://USER-SERVICE
+          uri: http://localhost:9020
           predicates:
             - Path=/api/v1/users/**
           filters:
             - StripPrefix=2
 
         - id: posts-service
-          uri: lb://POSTS-SERVICE
+          uri: http://localhost:9010
           predicates:
             - Path=/api/v1/posts/**
           filters:
@@ -20,9 +36,41 @@ spring:
             - name: AuthenticationFilter
 
         - id: connections-service
-          uri: lb://CONNECTIONS-SERVICE
+          uri: http://localhost:9030
           predicates:
             - Path=/api/v1/connections/**
+          filters:
+            - StripPrefix=2
+            - name: AuthenticationFilter
+
+        - id: likes-service
+          uri: http://localhost:9010
+          predicates:
+            - Path=/api/v1/likes/**
+          filters:
+            - RewritePath=/api/v1/likes/(?<segment>.*), /posts/likes/$\{segment}
+            - name: AuthenticationFilter
+
+        - id: spheres-service
+          uri: http://localhost:8009
+          predicates:
+            - Path=/api/v1/spheres/**
+          filters:
+            - StripPrefix=3
+            - name: AuthenticationFilter
+
+        - id: messages-service
+          uri: http://localhost:8010
+          predicates:
+            - Path=/api/v1/messages/**
+          filters:
+            - StripPrefix=2
+            - name: AuthenticationFilter
+
+        - id: notification-service
+          uri: http://localhost:9070
+          predicates:
+            - Path=/api/v1/notifications/**
           filters:
             - StripPrefix=2
             - name: AuthenticationFilter
@@ -30,8 +78,3 @@ spring:
 jwt.secretKey: ${secret}
 server:
   port: 8007
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka

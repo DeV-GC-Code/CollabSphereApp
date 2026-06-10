@@ -23,23 +23,30 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
-            log.info("Login request: {}", exchange.getRequest().getURI());
+            log.info("Authenticated request: {}", exchange.getRequest().getURI());
 
             final String tokenHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
-            if(tokenHeader == null || !tokenHeader.startsWith("Bearer")) {
+            if(tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 log.error("Authorization token header not found");
                 return exchange.getResponse().setComplete();
             }
 
-            final String token = tokenHeader.split("Bearer ")[1];
+            final String token = tokenHeader.substring(7);
 
             try {
-                String userId = jwtService.getUserIdFromToken(token);
+                final String userId = jwtService.getUserIdFromToken(token);
+
+                // Strip client-supplied X-User-Id (prevents spoofing), then inject the
+                // gateway-validated value so downstream services can trust it without
+                // re-parsing the JWT.
                 ServerWebExchange modifiedExchange = exchange
                         .mutate()
-                        .request(r -> r.header("X-User-Id", userId))
+                        .request(r -> r.headers(headers -> {
+                            headers.remove("X-User-Id");
+                            headers.add("X-User-Id", userId);
+                        }))
                         .build();
 
                 return chain.filter(modifiedExchange);

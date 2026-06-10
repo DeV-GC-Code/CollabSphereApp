@@ -1,18 +1,11 @@
-# CollabSphereApp
+# <img src="collabsphere-ui/public/icon.png" width="38" align="center" alt="CollabSphere Logo" /> CollabSphere
 
-CollabSphereApp is a microservices-based application built with Spring Boot. It consists of several services, each responsible for a specific domain, and uses Docker Compose for orchestration.
+A polyglot microservices platform built as a DevOps learning vehicle. It features six backend services, three databases, and one message broker — each written in a different language and wired together.
 
-## Project Structure
+---
 
-- **api-gateway/**: Handles routing and API aggregation.
-- **connections-service/**: Manages user connections.
-- **discovery-server/**: Service discovery (Eureka).
-- **notification-service/**: Sends notifications to users.
-- **posts-service/**: Manages user posts.
-- **user-service/**: Handles user signup and login management.
+## Overview
 
+CollabSphere is a distributed social networking application consisting of individual services that manage users, connections, posts, spheres (communities), direct messages, and notifications. Rather than using a single monolithic stack, it uses a polyglot approach (Java, Python, Go, Node.js) and multiple database engines (PostgreSQL, Neo4j, MongoDB) coordinated via REST APIs and Kafka messaging.
 
-## License
-
-This project is licensed under the MIT License.
-
+---
