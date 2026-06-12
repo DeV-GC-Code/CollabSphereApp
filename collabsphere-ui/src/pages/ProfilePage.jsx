@@ -115,27 +115,11 @@ export function ProfilePage() {
   const [toast, setToast] = useState("");
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState("");
-  const heroRef = useRef(null);
 
   const showToast = (msg) => {
     setToast(msg);
     window.setTimeout(() => setToast(""), 2600);
   };
-
-  /* Animated parallax mesh on hero */
-  useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
-    const onMove = (e) => {
-      const rect = hero.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      hero.style.setProperty("--mx", `${x}%`);
-      hero.style.setProperty("--my", `${y}%`);
-    };
-    hero.addEventListener("mousemove", onMove);
-    return () => hero.removeEventListener("mousemove", onMove);
-  }, []);
 
   const loadStats = useCallback(async () => {
     if (!user?.id) return;
@@ -206,9 +190,8 @@ export function ProfilePage() {
     <div className="profile-page-v2">
 
       {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="profile-hero-v2" ref={heroRef}>
+      <section className="profile-hero-v2">
         <div className="profile-hero-v2__mesh" />
-        <div className="profile-hero-v2__noise" />
 
         <div className="profile-hero-v2__inner">
           <div className="profile-hero-v2__identity">
@@ -407,11 +390,6 @@ export function ProfilePage() {
             Grow network <Icons.ChevronRight />
           </a>
         </article>
-
-        <footer className="colophon" aria-label="Colophon">
-          <span>Printed in <strong>2 inks</strong> · coral + ultramarine · CollabSphere press</span>
-          <span>edition no. {new Date().getFullYear()}</span>
-        </footer>
 
       </div>
 
