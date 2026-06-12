@@ -516,7 +516,7 @@ export function FeedPage() {
         ) : sortedPosts.length === 0 ? (
           <EmptyState
             icon={Icons.Inbox}
-            title="Your feed is empty"
+            title="Fresh off the press — nothing printed yet"
             detail="Publish your first update or connect with other members to see their posts here."
           />
         ) : (
