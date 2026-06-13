@@ -1,14 +1,19 @@
 /**
- * BrandMark — the single CollabSphere brand lockup used in the rail and
- * mobile header. Refined persimmon disc + the white/red app icon, with an
- * optional wordmark in Fraunces. One mark everywhere, no competing logos.
+ * BrandMark — the single CollabSphere brand lockup used in the rail, top bar,
+ * and mobile header. The orb app-icon (red planet + tilted blue ring on a cream
+ * tile) plus an optional wordmark. One mark everywhere — no competing logos.
  */
-export function BrandMark({ withName = true, size = 34 }) {
+export function BrandMark({ withName = true, size = 32 }) {
   return (
     <span className="brandmark">
-      <span className="brandmark__disc" style={{ width: size, height: size }}>
-        <img src="/icon.png" alt="" aria-hidden="true" />
-      </span>
+      <img
+        className="brandmark__icon"
+        src="/icon.svg"
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+      />
       {withName && <span className="brandmark__name">CollabSphere</span>}
     </span>
   );

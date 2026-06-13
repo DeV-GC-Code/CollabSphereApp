@@ -84,7 +84,7 @@ export function AuthPage() {
         {/* Brand — pinned top */}
         <div className="auth-hero__brand-row">
           <div className="auth-hero__icon">
-            <img src="/icon.png" alt="CollabSphere" />
+            <img src="/icon.svg" alt="CollabSphere" />
           </div>
           <span className="auth-hero__brand-name">CollabSphere</span>
         </div>

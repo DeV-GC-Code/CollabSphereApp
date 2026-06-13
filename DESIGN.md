@@ -1,9 +1,57 @@
 # CollabSphere — Design System
 
-> **"Operator Console."**
-> A community platform rendered as an engineer's console: a graphite-ink canvas, hairline-ruled panels (never cards), signal-lime for state and action, a warm ember for the human/social signal, and monospace as the engineered voice. Dense, precise, alive — Linear-meets-terminal. It looks like it was built by the kind of person who'd build a polyglot microservices system, because it was.
+> ## ⚠️ v2 — "Calm Paper" (Notion-style) is the CURRENT system. This section supersedes everything below it.
+>
+> The previous "Operator Console" direction (graphite + signal-lime neon) has been **retired**. Sections 1–2 (product/service map, brand position) still hold. Sections 3–10 below describe the *old* visual language and are kept only for history — **where they disagree with this v2 block, this block wins.**
 
-This document is the single source of truth for the CollabSphere UI. It derives the product surfaces from the actual backend services, defines the visual language, and specifies tokens, components, motion, and accessibility. When implementation and this doc disagree, **this doc wins** — fix the code.
+### v2 design language
+A calm, warm, document-grade interface in the spirit of Notion: white/warm-paper canvas, charcoal ink, generous whitespace, hairline dividers, and **one** restrained blue for everything interactive. No neon, no glow, no grid texture, no gradient shimmer. Personality comes from the brand orb, typography rhythm, and restraint — not from color noise.
+
+### v2 tokens (authoritative — mirror `collabsphere-ui/src/styles/app.css`)
+
+**Light (default)**
+
+| Token | Value | Role |
+|---|---|---|
+| `--bg` | `#FFFFFF` | Canvas |
+| `--bg-2` | `#F7F6F3` | Warm paper — rail, wells, hover base |
+| `--surface` | `#FFFFFF` | Panels |
+| `--surface-soft` | `rgba(55,53,47,.05)` | Hover gray |
+| `--text` | `#37352F` | Warm charcoal ink |
+| `--text-soft` | `#6B6A65` | Secondary |
+| `--text-muted` | `#9B9A97` | Meta |
+| `--accent` | `#2383E2` | Interactive fill (Notion blue) |
+| `--accent-ink` | `#1A6DC2` | Links / accent text (AA on white) |
+| `--ember` | `#D9482F` | Brand red (orb, likes) — sparingly |
+| `--outline` | `rgba(55,53,47,.10)` | Hairline |
+| `--success/danger/warning` | `#2E7D52 / #D44C47 / #CB7E2F` | Muted status |
+
+**Dark** — charcoal, not graphite: `--bg #191919`, `--bg-2 #202020`, `--surface #1F1F1F`, `--text #E6E6E4`, `--accent #2F8FEA`, `--accent-ink #6FB3F2`, `--ember #E2624A`. Same calm-blue system, lightened for contrast.
+
+**Geometry / depth:** radii `5 / 8 / 10 / 14px`; depth from hairlines + soft popover shadows (`--shadow-md/-xl`), never glow. **Type:** `Inter` for UI + display (hierarchy via weight, 400→700), `JetBrains Mono` for data/meta only. **Color is never the only signal** (pair with icon/label/shape). WCAG 2.1 AA unchanged.
+
+### Brand mark
+One mark everywhere: the **orb** — a warm red planet wrapped by a tilted blue ring on a cream tile (`public/icon.svg`, favicon, `BrandMark`, `BrandOrb`). No competing logos.
+
+### v2 pre-ship checklist
+- [ ] Zero neon: `grep -iE 'C6F24E|EC5A2E|F07A4E|rgba\(236, ?90, ?46|rgba\(198, ?242, ?78' app.css` → empty.
+- [ ] Inter on UI/headings; JetBrains Mono on meta only; no Geist/Fraunces/Jakarta/Space Grotesk.
+- [ ] One blue accent for all interaction; no gradients/glow/grid texture.
+- [ ] Buttons: solid-blue primary, surface+hairline secondary; icon+label vertically centered, 16px icons, consistent height.
+- [ ] Light & dark both pass AA; hairlines visible in both.
+- [ ] Orb icon used as favicon + brand mark everywhere.
+
+---
+
+<details>
+<summary><em>History — v1 "Operator Console" (retired). Kept for reference only.</em></summary>
+
+> **"Operator Console."**
+> A community platform rendered as an engineer's console: a graphite-ink canvas, hairline-ruled panels (never cards), signal-lime for state and action, a warm ember for the human/social signal, and monospace as the engineered voice.
+
+When implementation and this doc disagree, **the v2 block above wins** — fix the code.
+
+</details>
 
 ---
 

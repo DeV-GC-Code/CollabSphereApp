@@ -1,18 +1,12 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { BrandMark } from "./BrandMark.jsx";
 import { Icons } from "./Icons.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
 
-export function TopBar() {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
 
-  const runSearch = (e) => {
-    e.preventDefault();
-    const q = query.trim();
-    navigate(q ? `/network?q=${encodeURIComponent(q)}` : "/network");
-  };
+export function TopBar() {
+  const openPalette = () => window.dispatchEvent(new CustomEvent("cs:open-palette"));
 
   return (
     <header className="appbar">
@@ -20,15 +14,17 @@ export function TopBar() {
         <BrandMark withName={false} size={30} />
       </NavLink>
 
-      <form className="appbar__search" onSubmit={runSearch} role="search">
+      {/* Search is now the command-palette trigger, not a dead-end to /network. */}
+      <button
+        type="button"
+        className="appbar__search appbar__search--button"
+        onClick={openPalette}
+        aria-label="Open command palette to search people, spheres, or jump to a page"
+      >
         <Icons.Search />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search people, spheres, companies…"
-          aria-label="Search"
-        />
-      </form>
+        <span className="appbar__search-placeholder">Search or jump to…</span>
+        <kbd className="appbar__search-kbd">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+      </button>
 
       <div className="appbar__actions">
         <ThemeToggle />
