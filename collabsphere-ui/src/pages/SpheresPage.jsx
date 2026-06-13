@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../auth/AuthContext.jsx";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
+import { SphereMonogram } from "../components/SphereMonogram.jsx";
 import { BrandOrb } from "../components/BrandOrb.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { SkeletonCards } from "../components/Skeleton.jsx";
@@ -425,11 +426,11 @@ export function SpheresPage() {
                     <article
                       key={sphere.id}
                       className="featured-sphere-card"
-                      style={{ background: FEAT_GRADIENTS[idx % FEAT_GRADIENTS.length], cursor: "pointer" }}
+                      style={{ cursor: "pointer" }}
                       onClick={() => openHub(sphere)}
                     >
                       <div className="featured-sphere-card__top">
-                        <div className="featured-sphere-card__icon"><Icons.Hub /></div>
+                        <SphereMonogram name={sphere.name} size={40} />
                         <span className="featured-sphere-card__members">
                           <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
                         </span>
@@ -476,7 +477,7 @@ export function SpheresPage() {
                           style={{ cursor: "pointer" }}
                         >
                           <div className="sphere-card__icon-row">
-                            <div className="rail-card__icon"><Icons.Hub /></div>
+                            <SphereMonogram name={sphere.name} size={44} />
                             <span className="sphere-card__members">
                               <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
                             </span>
@@ -520,7 +521,7 @@ export function SpheresPage() {
                     style={{ cursor: "pointer" }}
                   >
                     <div className="sphere-card__icon-row">
-                      <div className="rail-card__icon"><Icons.Hub /></div>
+                      <SphereMonogram name={sphere.name} size={44} />
                       <span className="sphere-card__members">
                         <Icons.Users /> {Number(sphere.member_count || 0).toLocaleString()} members
                       </span>
@@ -592,7 +593,7 @@ export function SpheresPage() {
                 <p>{activeSphere.description || "Welcome to our community!"}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                   {(activeSphere.tags || []).map((tag) => (
-                    <span key={tag} className="chip" style={{ background: "rgba(255,255,255,0.18)", color: "#fff", fontSize: 11 }}>#{tag}</span>
+                    <span key={tag} className="chip" style={{ fontSize: 11 }}>#{tag}</span>
                   ))}
                 </div>
                 {!joinedIds.has(activeSphere.id) && !isAdmin && (
