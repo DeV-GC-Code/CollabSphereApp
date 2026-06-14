@@ -56,6 +56,7 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
+**/docs/*
 
 # Environment files
 .env
@@ -91,7 +92,7 @@ __pycache__/
 .agent/
 .antigravity/
 .cursor/
-docs/
+.docs/
 
 # Husky (was only used for deleted webapp; empty hook removed)
 .husky/
