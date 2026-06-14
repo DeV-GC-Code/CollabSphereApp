@@ -39,8 +39,8 @@ export const Icons = {
       <path d="M5 12h14" />
     </svg>
   ),
-  Heart: ({ filled = false, ...props } = {}) => (
-    <svg {...p} {...props} fill={filled ? "currentColor" : "none"}>
+  Heart: ({ filled = false } = {}) => (
+    <svg {...p} fill={filled ? "currentColor" : "none"}>
       <path d="M19.5 5.2a5 5 0 0 0-7.1 0l-.4.4-.4-.4a5 5 0 1 0-7.1 7.1l.4.4L12 20l7.1-7.3.4-.4a5 5 0 0 0 0-7.1Z" />
     </svg>
   ),
@@ -113,8 +113,8 @@ export const Icons = {
       <path d="m17 16.8-3-2.7" />
     </svg>
   ),
-  Bookmark: ({ filled = false, ...props } = {}) => (
-    <svg {...p} {...props} fill={filled ? "currentColor" : "none"}>
+  Bookmark: ({ filled = false } = {}) => (
+    <svg {...p} fill={filled ? "currentColor" : "none"}>
       <path d="M6 3h12v18l-6-4-6 4Z" />
     </svg>
   ),

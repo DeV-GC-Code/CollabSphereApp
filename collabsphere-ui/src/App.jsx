@@ -10,6 +10,7 @@ import { NotificationsPage } from "./pages/NotificationsPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { SavedPage } from "./pages/SavedPage.jsx";
 import { SpheresPage } from "./pages/SpheresPage.jsx";
+import { ViewTransitionWrapper } from "./components/ViewTransition.jsx";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -25,26 +26,28 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
-          <Route
-            path="/login"
-            element={<GuestRoute><AuthPage /></GuestRoute>}
-          />
-          <Route
-            path="/"
-            element={<ProtectedRoute><AppShell /></ProtectedRoute>}
-          >
-            <Route index element={<Navigate to="/feed" replace />} />
-            <Route path="feed"          element={<FeedPage />} />
-            <Route path="network"       element={<NetworkPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="spheres"       element={<SpheresPage />} />
-            <Route path="saved"         element={<SavedPage />} />
-            <Route path="messages"      element={<MessagesPage />} />
-            <Route path="profile"       element={<ProfilePage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <ViewTransitionWrapper>
+          <Routes>
+            <Route
+              path="/login"
+              element={<GuestRoute><AuthPage /></GuestRoute>}
+            />
+            <Route
+              path="/"
+              element={<ProtectedRoute><AppShell /></ProtectedRoute>}
+            >
+              <Route index element={<Navigate to="/feed" replace />} />
+              <Route path="feed"          element={<FeedPage />} />
+              <Route path="network"       element={<NetworkPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="spheres"       element={<SpheresPage />} />
+              <Route path="saved"         element={<SavedPage />} />
+              <Route path="messages"      element={<MessagesPage />} />
+              <Route path="profile"       element={<ProfilePage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </ViewTransitionWrapper>
       </AuthProvider>
     </ThemeProvider>
   );

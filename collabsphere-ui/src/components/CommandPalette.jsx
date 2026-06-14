@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { useTheme } from "../auth/ThemeContext.jsx";
 import { searchPeople } from "../api/connections.js";
@@ -9,21 +9,14 @@ import { initials } from "../utils/format.js";
 
 /**
  * CommandPalette — the navigation spine (⌘K / Ctrl+K).
- *
- * First-principles redesign (see /REDESIGN.md §4, §14 P0): for a keyboard-native
- * audience (recruiters/engineers who live in Linear, GitHub, Vercel) the fastest
- * navigation is no navigation. This demotes the rail to a glanceable map and gives
- * search a real home — replacing the old top-bar box that dead-ended at /network.
- *
- * Additive and non-breaking: mounted once in AppShell, owns its own open state via
- * a global keydown listener. Accessible: role=dialog + aria-modal, ↑/↓/Enter/Esc,
- * aria-activedescendant, focus restored to the previously-focused element on close.
+ * Rich command center with recent items, actions, people, and spheres search.
  */
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
 
 export function CommandPalette() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = useAuth();
   const { toggle: toggleTheme, isDark } = useTheme();
 
@@ -33,10 +26,26 @@ export function CommandPalette() {
   const [people, setPeople] = useState([]);
   const [spheres, setSpheres] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [recentItems, setRecentItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem("cs:recent-items");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
   const inputRef = useRef(null);
   const listRef = useRef(null);
   const restoreFocusRef = useRef(null);
+
+  // Add to recent items
+  const addToRecent = useCallback((item) => {
+    setRecentItems(prev => {
+      const filtered = prev.filter(i => i.id !== item.id);
+      const next = [item, ...filtered].slice(0, 8);
+      localStorage.setItem("cs:recent-items", JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -44,7 +53,6 @@ export function CommandPalette() {
     setPeople([]);
     setSpheres([]);
     setActive(0);
-    // Restore focus to whatever triggered the palette (a11y).
     const el = restoreFocusRef.current;
     if (el && typeof el.focus === "function") el.focus();
   }, []);
@@ -113,17 +121,18 @@ export function CommandPalette() {
 
   // Static commands: navigation + actions.
   const baseCommands = useMemo(() => [
-    { id: "nav-home", group: "Go to", label: "Home", icon: Icons.Home, keywords: "feed posts", run: () => navigate("/feed") },
-    { id: "nav-network", group: "Go to", label: "Network", icon: Icons.Users, keywords: "people connections graph requests", run: () => navigate("/network") },
-    { id: "nav-messages", group: "Go to", label: "Messages", icon: Icons.MessageCircle, keywords: "dm chat inbox", run: () => navigate("/messages") },
-    { id: "nav-spheres", group: "Go to", label: "Spheres", icon: Icons.Globe, keywords: "communities rooms threads", run: () => navigate("/spheres") },
-    { id: "nav-notifs", group: "Go to", label: "Notifications", icon: Icons.Bell, keywords: "activity alerts", run: () => navigate("/notifications") },
-    { id: "nav-saved", group: "Go to", label: "Saved", icon: Icons.Bookmark, keywords: "bookmarks", run: () => navigate("/saved") },
-    { id: "nav-profile", group: "Go to", label: "Profile", icon: Icons.User, keywords: "me account you", run: () => navigate("/profile") },
-    { id: "act-post", group: "Actions", label: "New post", icon: Icons.Plus, keywords: "compose write create", run: () => navigate("/feed") },
-    { id: "act-find", group: "Actions", label: "Find people", icon: Icons.Network, keywords: "search connect", run: () => navigate("/network") },
-    { id: "act-theme", group: "Actions", label: isDark ? "Switch to light mode" : "Switch to dark mode", icon: isDark ? Icons.Sun : Icons.Moon, keywords: "theme dark light", run: () => toggleTheme() },
-  ], [navigate, toggleTheme, isDark]);
+    { id: "nav-home", group: "Go to", label: "Home", icon: Icons.Home, shortcut: isMac ? "⌘1" : "Ctrl 1", keywords: "feed posts", run: () => { navigate("/feed"); addToRecent({ id: "nav-home", label: "Home", icon: Icons.Home, path: "/feed" }); } },
+    { id: "nav-network", group: "Go to", label: "Network", icon: Icons.Users, shortcut: isMac ? "⌘2" : "Ctrl 2", keywords: "people connections graph requests", run: () => { navigate("/network"); addToRecent({ id: "nav-network", label: "Network", icon: Icons.Users, path: "/network" }); } },
+    { id: "nav-messages", group: "Go to", label: "Messages", icon: Icons.MessageCircle, shortcut: isMac ? "⌘3" : "Ctrl 3", keywords: "dm chat inbox", run: () => { navigate("/messages"); addToRecent({ id: "nav-messages", label: "Messages", icon: Icons.MessageCircle, path: "/messages" }); } },
+    { id: "nav-spheres", group: "Go to", label: "Spheres", icon: Icons.Globe, shortcut: isMac ? "⌘4" : "Ctrl 4", keywords: "communities rooms threads", run: () => { navigate("/spheres"); addToRecent({ id: "nav-spheres", label: "Spheres", icon: Icons.Globe, path: "/spheres" }); } },
+    { id: "nav-notifs", group: "Go to", label: "Notifications", icon: Icons.Bell, keywords: "activity alerts", run: () => { navigate("/notifications"); addToRecent({ id: "nav-notifs", label: "Notifications", icon: Icons.Bell, path: "/notifications" }); } },
+    { id: "nav-saved", group: "Go to", label: "Saved", icon: Icons.Bookmark, keywords: "bookmarks", run: () => { navigate("/saved"); addToRecent({ id: "nav-saved", label: "Saved", icon: Icons.Bookmark, path: "/saved" }); } },
+    { id: "nav-profile", group: "Go to", label: "Profile", icon: Icons.User, shortcut: isMac ? "⌘," : "Ctrl ,", keywords: "me account you settings", run: () => { navigate("/profile"); addToRecent({ id: "nav-profile", label: "Profile", icon: Icons.User, path: "/profile" }); } },
+    { id: "act-post", group: "Actions", label: "New Post", icon: Icons.Plus, shortcut: isMac ? "⌘N" : "Ctrl N", keywords: "compose write create", run: () => { navigate("/feed?create=true"); addToRecent({ id: "act-post", label: "New Post", icon: Icons.Plus, path: "/feed?create=true" }); } },
+    { id: "act-find", group: "Actions", label: "Find People", icon: Icons.Network, shortcut: isMac ? "⌘F" : "Ctrl F", keywords: "search connect", run: () => { navigate("/network"); addToRecent({ id: "act-find", label: "Find People", icon: Icons.Network, path: "/network" }); } },
+    { id: "act-theme", group: "Actions", label: isDark ? "Switch to Light Mode" : "Switch to Dark Mode", icon: isDark ? Icons.Sun : Icons.Moon, shortcut: isMac ? "⌘D" : "Ctrl D", keywords: "theme dark light", run: () => toggleTheme() },
+    { id: "act-refresh", group: "Actions", label: "Refresh Page", icon: Icons.Refresh, shortcut: isMac ? "⌘R" : "Ctrl R", keywords: "reload update", run: () => window.location.reload() },
+  ], [navigate, toggleTheme, isDark, addToRecent]);
 
   const q = query.trim().toLowerCase();
   const filteredCommands = useMemo(() => {
@@ -139,6 +148,19 @@ export function CommandPalette() {
       if (item.group !== lastGroup) { item.firstInGroup = true; lastGroup = item.group; }
       items.push(item);
     };
+
+    // Recent items first (when query is empty)
+    if (!q && recentItems.length > 0) {
+      recentItems.forEach((item, idx) => {
+        push({
+          ...item,
+          group: "Recent",
+          firstInGroup: idx === 0,
+          run: () => { navigate(item.path); addToRecent(item); },
+        });
+      });
+    }
+
     filteredCommands.forEach(push);
     people.forEach((p) => push({
       id: `person-${p.userId}`,
@@ -146,7 +168,7 @@ export function CommandPalette() {
       label: p.name || p.email || "Unknown",
       sub: p.worksAt || p.email,
       person: p,
-      run: () => navigate(`/network?q=${encodeURIComponent(p.name || p.email || "")}`),
+      run: () => { navigate(`/network?q=${encodeURIComponent(p.name || p.email || "")}`); addToRecent({ id: `person-${p.userId}`, label: p.name, icon: Icons.User, path: `/network?q=${encodeURIComponent(p.name || "")}` }); },
     }));
     spheres.forEach((s) => push({
       id: `sphere-${s.id || s._id}`,
@@ -154,10 +176,10 @@ export function CommandPalette() {
       label: s.name || "Sphere",
       sub: Array.isArray(s.tags) && s.tags.length ? s.tags.map((t) => `#${t}`).join("  ") : undefined,
       icon: Icons.Globe,
-      run: () => navigate("/spheres"),
+      run: () => { navigate("/spheres"); addToRecent({ id: `sphere-${s.id || s._id}`, label: s.name, icon: Icons.Globe, path: "/spheres" }); },
     }));
     return items;
-  }, [filteredCommands, people, spheres, navigate]);
+  }, [filteredCommands, people, spheres, navigate, recentItems, q, addToRecent]);
 
   // Keep the active index in range as results change.
   useEffect(() => { setActive((i) => Math.min(i, Math.max(0, results.length - 1))); }, [results.length]);
@@ -207,12 +229,18 @@ export function CommandPalette() {
             autoComplete="off"
           />
           {searching && <span className="cmdk__hint cmdk__hint--mono">searching…</span>}
+          {!searching && q && <span className="cmdk__hint cmdk__hint--mono">↵ to select</span>}
         </div>
 
         <ul className="cmdk__list" id="cmdk-list" role="listbox" ref={listRef} aria-label="Results">
-          {results.length === 0 && (
+          {results.length === 0 && q && (
             <li className="cmdk__empty" role="presentation">
               No matches for “{query.trim()}”. Try a name, a sphere, or a page.
+            </li>
+          )}
+          {results.length === 0 && !q && recentItems.length === 0 && (
+            <li className="cmdk__empty" role="presentation">
+              Press <kbd>{isMac ? "⌘K" : "Ctrl K"}</kbd> to open, type to search.
             </li>
           )}
           {results.map((item, idx) => {
@@ -238,6 +266,7 @@ export function CommandPalette() {
                     {item.label}
                     {item.sub && <span className="cmdk__sub">{item.sub}</span>}
                   </span>
+                  {item.shortcut && <span className="cmdk__shortcut">{item.shortcut}</span>}
                   {idx === active && <span className="cmdk__enter cmdk__hint--mono" aria-hidden="true">↵</span>}
                 </div>
               </li>

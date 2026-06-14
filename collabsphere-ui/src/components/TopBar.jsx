@@ -3,8 +3,6 @@ import { BrandMark } from "./BrandMark.jsx";
 import { Icons } from "./Icons.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
 
-const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
-
 export function TopBar() {
   const openPalette = () => window.dispatchEvent(new CustomEvent("cs:open-palette"));
 
@@ -14,16 +12,15 @@ export function TopBar() {
         <BrandMark withName={false} size={30} />
       </NavLink>
 
-      {/* Search is now the command-palette trigger, not a dead-end to /network. */}
+      {/* Clean Notion-style search trigger (opens the search/jump palette). */}
       <button
         type="button"
         className="appbar__search appbar__search--button"
         onClick={openPalette}
-        aria-label="Open command palette to search people, spheres, or jump to a page"
+        aria-label="Search people, spheres, or jump to a page"
       >
         <Icons.Search />
-        <span className="appbar__search-placeholder">Search or jump to…</span>
-        <kbd className="appbar__search-kbd">{isMac ? "⌘K" : "Ctrl K"}</kbd>
+        <span className="appbar__search-placeholder">Search…</span>
       </button>
 
       <div className="appbar__actions">

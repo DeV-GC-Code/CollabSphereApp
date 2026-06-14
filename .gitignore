@@ -91,6 +91,7 @@ __pycache__/
 .agent/
 .antigravity/
 .cursor/
+docs/
 
 # Husky (was only used for deleted webapp; empty hook removed)
 .husky/
