@@ -5,9 +5,12 @@ import { pool } from "./pool.js";
 // Connects to the main postgres instance and looks up users by email.
 // This makes the seed idempotent regardless of which order users were created.
 
+// ARC-3: user-service now owns its own DB (collabsphere_users) rather than the
+// shared `postgres` DB. The sphere seed looks up users there. Override with
+// USER_DB_URL if your users live elsewhere.
 const USER_DB_URL =
   process.env.USER_DB_URL ||
-  process.env.DATABASE_URL?.replace("collabsphere_spheres", "postgres");
+  process.env.DATABASE_URL?.replace("collabsphere_spheres", "collabsphere_users");
 
 if (!USER_DB_URL) {
   throw new Error("USER_DB_URL or DATABASE_URL must be set before running the spheres seed");

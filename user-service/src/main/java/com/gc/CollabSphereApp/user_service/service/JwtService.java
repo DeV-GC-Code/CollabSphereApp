@@ -17,8 +17,21 @@ public class JwtService {
     @Value("${jwt.secretKey}")
     private String jwtSecretKey;
 
+    // SEC-4: access-token lifetime is config-driven (default 24h). Keep it short
+    // in production and pair with refresh tokens (see docs/security/hardening.md).
+    @Value("${jwt.accessTokenExpirationMs:86400000}")
+    private long accessTokenExpirationMs;
+
     private SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(jwtSecretKey.getBytes(StandardCharsets.UTF_8));
+        // SEC-4: HS256 needs a >= 256-bit (32-byte) secret. Fail fast on a weak
+        // secret rather than minting forgeable tokens with a short key.
+        byte[] keyBytes = (jwtSecretKey != null) ? jwtSecretKey.getBytes(StandardCharsets.UTF_8) : new byte[0];
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException(
+                    "jwt.secretKey must be at least 32 bytes (256-bit) for HS256. "
+                            + "Set a strong ${secret}. See docs/security/hardening.md (SEC-4).");
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateAccessToken(User user) {
@@ -28,7 +41,7 @@ public class JwtService {
                 .claim("name", user.getName())
                 .claim("worksAt", user.getWorksAt())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24))
+                .expiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs))
                 .signWith(getSecretKey())
                 .compact();
     }

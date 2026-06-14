@@ -20,12 +20,29 @@ spring:
               - "*"
             maxAge: 3600
       routes:
-        - id: user-service
+        # ── user-service: only auth (signup/login) + stats are PUBLIC.
+        #    Everything else (directory, profile-by-id) requires a valid JWT.
+        #    Route order matters: first match wins, so public routes precede the catch-all.
+        - id: user-auth
+          uri: http://localhost:9020
+          predicates:
+            - Path=/api/v1/users/auth/**
+          filters:
+            - StripPrefix=2
+            - name: RateLimit          # SEC-2: throttle login/signup (brute-force / spam)
+        - id: user-stats
+          uri: http://localhost:9020
+          predicates:
+            - Path=/api/v1/users/stats
+          filters:
+            - StripPrefix=2
+        - id: user-service             # SEC-1: protected reads (list, by-id)
           uri: http://localhost:9020
           predicates:
             - Path=/api/v1/users/**
           filters:
             - StripPrefix=2
+            - name: AuthenticationFilter
 
         - id: posts-service
           uri: http://localhost:9010
