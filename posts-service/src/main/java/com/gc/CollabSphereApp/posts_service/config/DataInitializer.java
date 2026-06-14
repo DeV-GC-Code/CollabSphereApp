@@ -6,8 +6,10 @@ import com.gc.CollabSphereApp.posts_service.repository.PostCommentRepository;
 import com.gc.CollabSphereApp.posts_service.repository.PostsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,17 +22,37 @@ public class DataInitializer implements CommandLineRunner {
 
     private final PostsRepository postsRepository;
     private final PostCommentRepository postCommentRepository;
-    private final JdbcTemplate jdbcTemplate;
+
+    // ARC-3: the `users` table now lives in collabsphere_users (DB-per-service), not in
+    // this service's posts DB. Resolve seed authors via a dedicated read-only lookup so we
+    // don't re-couple the two schemas.
+    @Value("${users.datasource.url}")
+    private String usersDbUrl;
+    @Value("${spring.datasource.username}")
+    private String dbUsername;
+    @Value("${spring.datasource.password}")
+    private String dbPassword;
+
+    private JdbcTemplate usersJdbcTemplate;
+
+    private JdbcTemplate usersJdbcTemplate() {
+        if (usersJdbcTemplate == null) {
+            DriverManagerDataSource ds = new DriverManagerDataSource(usersDbUrl, dbUsername, dbPassword);
+            ds.setDriverClassName("org.postgresql.Driver");
+            usersJdbcTemplate = new JdbcTemplate(ds);
+        }
+        return usersJdbcTemplate;
+    }
 
     private static final String IMG = "\n\n[media:{\"type\":\"image\",\"data\":\"%s\"}]";
 
     private record SeedPost(long userId, String content, List<SeedComment> comments) {}
     private record SeedComment(long userId, String content) {}
 
-    /** Look up a user's DB id by email. Returns null when user does not exist yet. */
+    /** Look up a user's DB id by email in collabsphere_users. Returns null when not present yet. */
     private Long uid(String email) {
         try {
-            return jdbcTemplate.queryForObject(
+            return usersJdbcTemplate().queryForObject(
                     "SELECT id FROM users WHERE email = ?", Long.class, email);
         } catch (Exception e) {
             return null;

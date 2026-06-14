@@ -9,6 +9,7 @@ import com.gc.CollabSphereApp.posts_service.dto.PostDto;
 import com.gc.CollabSphereApp.posts_service.entity.Post;
 import com.gc.CollabSphereApp.posts_service.exception.ResourceNotFoundException;
 import com.gc.CollabSphereApp.posts_service.repository.PostsRepository;
+import com.gc.CollabSphereApp.posts_service.util.HtmlSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -52,6 +53,8 @@ public class PostService {
         Long userId = UserContextHolder.getCurrentUserId();
         Post post = modelMapper.map(postDto, Post.class);
         post.setUserId(userId);
+        // SEC-3: authoritative server-side sanitization (never trust client HTML).
+        post.setContent(HtmlSanitizer.clean(post.getContent()));
         Post savedPost = postsRepository.save(post);
 
         PostCreatedEvent event = modelMapper.map(savedPost, PostCreatedEvent.class);
