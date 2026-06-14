@@ -207,7 +207,7 @@ export function NotificationsPage() {
           {totalCount === 0 && (
             <EmptyState
               icon={Icons.Bell}
-              title="You're all caught up"
+              title="All caught up — presses are quiet"
               detail="Connection invitations and collaboration activity will appear here."
             />
           )}

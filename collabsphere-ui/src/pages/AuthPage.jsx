@@ -33,7 +33,6 @@ export function AuthPage() {
   }, []);
 
   const isSignup = mode === "signup";
-
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const switchMode = (next) => {
@@ -76,136 +75,96 @@ export function AuthPage() {
   };
 
   return (
-    <div className="auth-split">
-
-      {/* ── LEFT — Hero ──────────────────────────────────────── */}
-      <aside className="auth-hero">
-
-        {/* Brand — pinned top */}
-        <div className="auth-hero__brand-row">
-          <div className="auth-hero__icon">
-            <img src="/icon.png" alt="CollabSphere" />
-          </div>
-          <span className="auth-hero__brand-name">CollabSphere</span>
+    <div className="auth">
+      <div className="auth__panel">
+        {/* Brand */}
+        <div className="auth__brand">
+          <BrandOrb size={68} />
+          <span className="auth__brandname">CollabSphere</span>
         </div>
 
-        {/* Center — full globe + copy, vertically centered */}
-        <div className="auth-hero__center">
-          <div className="auth-hero__viz">
-            <BrandOrb size={440} />
-          </div>
-          <div className="auth-hero__copy">
-            <h1 className="auth-hero__headline">
-              Where ideas <span className="hero-accent">collide</span><br />
-              &amp; networks grow.
-            </h1>
-            <p className="auth-hero__sub">
-              The professional community for engineers, designers, and product thinkers.
-            </p>
-          </div>
-        </div>
-
-      </aside>
-
-      {/* ── RIGHT — Form ─────────────────────────────────────── */}
-      <main className="auth-form-side">
-        <div className="auth-glass-card">
-
-          <h2 className="auth-glass-card__title">
-            {isSignup ? "Create account" : "Sign in"}
-          </h2>
-          <p className="auth-glass-card__sub">
-            {isSignup ? "Free forever · no credit card needed" : "or create an account"}
+        {/* Heading */}
+        <header className="auth__head">
+          <h1>{isSignup ? "Create your account" : "Welcome back"}</h1>
+          <p>
+            {isSignup
+              ? "Join the community for engineers, designers & product thinkers."
+              : "Sign in to where ideas collide & networks grow."}
           </p>
+        </header>
 
-          {error   && <div className="notice notice--error"   role="alert">{error}</div>}
-          {message && <div className="notice notice--success" role="status">{message}</div>}
+        {error && <div className="notice notice--error" role="alert">{error}</div>}
+        {message && <div className="notice notice--success" role="status">{message}</div>}
 
-          <form className="auth-glass-form" onSubmit={submit} noValidate>
-            {isSignup && (
-              <>
-                <div className="auth-field">
-                  <input
-                    value={form.name}
-                    onChange={set("name")}
-                    autoComplete="name"
-                    placeholder="Full name"
-                    required
-                  />
-                </div>
-                <div className="auth-field">
-                  <input
-                    value={form.worksAt}
-                    onChange={set("worksAt")}
-                    autoComplete="organization"
-                    placeholder="Company / School"
-                    required
-                  />
-                </div>
-              </>
-            )}
+        {/* Form */}
+        <form className="auth__form" onSubmit={submit} noValidate>
+          {isSignup && (
+            <>
+              <label className="auth__field">
+                <span>Full name</span>
+                <input value={form.name} onChange={set("name")} autoComplete="name" placeholder="Ada Lovelace" required />
+              </label>
+              <label className="auth__field">
+                <span>Company / School</span>
+                <input value={form.worksAt} onChange={set("worksAt")} autoComplete="organization" placeholder="Acme Inc." required />
+              </label>
+            </>
+          )}
 
-            <div className="auth-field">
-              <input
-                type="email"
-                value={form.email}
-                onChange={set("email")}
-                autoComplete="email"
-                placeholder="Email address"
-                required
-              />
-            </div>
+          <label className="auth__field">
+            <span>Email</span>
+            <input type="email" value={form.email} onChange={set("email")} autoComplete="email" placeholder="you@company.com" required />
+          </label>
 
-            <div className="auth-field auth-field--password">
+          <label className="auth__field auth__field--pwd">
+            <span>Password</span>
+            <div className="auth__wrap">
               <input
                 type={showPwd ? "text" : "password"}
                 value={form.password}
                 onChange={set("password")}
                 autoComplete={isSignup ? "new-password" : "current-password"}
-                placeholder="Password"
+                placeholder="••••••••"
                 required
               />
               <button
                 type="button"
-                className="auth-pwd-toggle"
+                className="auth__pwd-toggle"
                 onClick={() => setShowPwd((v) => !v)}
                 aria-label={showPwd ? "Hide password" : "Show password"}
               >
                 {showPwd ? <Icons.EyeOff /> : <Icons.Eye />}
               </button>
             </div>
+          </label>
 
-            {isSignup && (
-              <p className="auth-pwd-hint">
-                Min 8 chars · no spaces · 1 uppercase · 1 number
-              </p>
+          {isSignup && (
+            <p className="auth__hint">Min 8 characters · no spaces · 1 uppercase · 1 number</p>
+          )}
+
+          <button className="button button--primary button--block auth__submit" type="submit" disabled={loading}>
+            {loading ? (
+              <Spinner label={isSignup ? "Creating account" : "Signing in"} />
+            ) : isSignup ? (
+              "Create account"
+            ) : (
+              "Sign in"
             )}
-
-            <button
-              className="auth-btn auth-btn--primary"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? (
-                <Spinner label={isSignup ? "Creating account" : "Signing in"} />
-              ) : isSignup ? (
-                "Create account"
-              ) : (
-                "Sign in"
-              )}
-            </button>
-          </form>
-
-          <button
-            type="button"
-            className="auth-btn auth-btn--outline"
-            onClick={() => switchMode(isSignup ? "login" : "signup")}
-          >
-            {isSignup ? "Sign in instead" : "Create account"}
           </button>
+        </form>
 
-        </div>
-      </main>
+        {/* Switch */}
+        <p className="auth__switch">
+          {isSignup ? "Already have an account?" : "New to CollabSphere?"}{" "}
+          <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")}>
+            {isSignup ? "Sign in" : "Create an account"}
+          </button>
+        </p>
+
+        {memberCount != null && (
+          <p className="auth__proof">Join {Number(memberCount).toLocaleString()}+ members already on CollabSphere</p>
+        )}
+      </div>
     </div>
   );
 }

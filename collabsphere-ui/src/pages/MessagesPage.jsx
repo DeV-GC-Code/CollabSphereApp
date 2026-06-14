@@ -242,7 +242,7 @@ export function MessagesPage() {
           {!loading && partners.length === 0 ? (
             <EmptyState
               icon={Icons.MessageCircle}
-              title="No conversations yet"
+              title="The mailbag is empty"
               detail="Connect with people in your network, then start a direct message here."
             />
           ) : (

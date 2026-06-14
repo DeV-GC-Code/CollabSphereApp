@@ -10,14 +10,17 @@ import { OnboardingModal } from "../components/OnboardingModal.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { SkeletonPosts } from "../components/Skeleton.jsx";
 import { Toast } from "../components/Toast.jsx";
-import { initials, timeAgo } from "../utils/format.js";
+import { RichTextEditor } from "../components/RichTextEditor.jsx";
+import { initials, timeAgo, parsePostContent, renderPostHtml, sanitizeHtml } from "../utils/format.js";
 import { loadSavedIds, toggleSaved } from "../utils/saved.js";
 
 export function FeedPage() {
   const { token, user, signOut } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem("cs_onboarding_done"));
   const [posts, setPosts] = useState([]);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState("");      // rich HTML from the editor
+  const [contentText, setContentText] = useState(""); // plain text (for counter/empty check)
+  const [composerKey, setComposerKey] = useState(0);  // bump to reset the editor
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
@@ -36,7 +39,7 @@ export function FeedPage() {
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
 
   const sortedPosts = useMemo(
     () => [...posts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
@@ -88,7 +91,7 @@ export function FeedPage() {
   // Handle Create Post focus trigger from Sidebar
   useEffect(() => {
     if (searchParams.get("create") === "true") {
-      textareaRef.current?.focus();
+      editorRef.current?.focus();
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -149,104 +152,29 @@ export function FeedPage() {
     reader.readAsDataURL(file);
   };
 
-  const insertFormat = (tag, option = null) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-
-    const selectedText = text.substring(start, end);
-    let openTag = option ? `[${tag}=${option}]` : `[${tag}]`;
-    let closeTag = `[/${tag}]`;
-
-    const replacement = `${openTag}${selectedText}${closeTag}`;
-    const newContent = text.substring(0, start) + replacement + text.substring(end);
-
-    setContent(newContent);
-
-    // Restore focus and selection
-    setTimeout(() => {
-      textarea.focus();
-      const selectionStart = start + openTag.length;
-      const selectionEnd = selectionStart + selectedText.length;
-      textarea.setSelectionRange(selectionStart, selectionEnd);
-    }, 0);
-  };
-
-  const renderFormattedText = (rawText) => {
-    if (!rawText) return "";
-    
-    // Escape HTML to prevent XSS
-    let escaped = rawText
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-
-    // Replace newlines with <br />
-    escaped = escaped.replace(/\n/g, "<br />");
-
-    // BBCode bold -> strong
-    escaped = escaped.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, "<strong>$1</strong>");
-    
-    // BBCode italic -> em
-    escaped = escaped.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, "<em>$1</em>");
-
-    // BBCode underline -> u
-    escaped = escaped.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, "<u>$1</u>");
-
-    // BBCode color
-    const colorMap = {
-      green: "#10b981",
-      teal: "#14b8a6",
-      amber: "#f59e0b",
-      red: "#ef4444"
-    };
-    escaped = escaped.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]/gi, (match, colorVal, textVal) => {
-      const color = colorMap[colorVal.toLowerCase()] || colorVal;
-      return `<span style="color: ${color}">${textVal}</span>`;
-    });
-
-    // BBCode font
-    const fontMap = {
-      monospace: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-      serif: "Georgia, Cambria, 'Times New Roman', Times, serif",
-      geist: "Outfit, Inter, system-ui, -apple-system, sans-serif"
-    };
-    escaped = escaped.replace(/\[font=([^\]]+)\]([\s\S]*?)\[\/font\]/gi, (match, fontVal, textVal) => {
-      const font = fontMap[fontVal.toLowerCase()] || fontVal;
-      return `<span style="font-family: ${font}">${textVal}</span>`;
-    });
-
-    return escaped;
-  };
-
-  const parsePostContent = (rawContent) => {
-    if (!rawContent) return { text: "", media: null };
-    const mediaRegex = /\n\n\[media:(\{.*\})\]$/s;
-    const match = rawContent.match(mediaRegex);
-    if (match) {
-      try {
-        const media = JSON.parse(match[1]);
-        const text = rawContent.replace(mediaRegex, "");
-        return { text, media };
-      } catch {
-        return { text: rawContent, media: null };
-      }
-    }
-    return { text: rawContent, media: null };
+  // Rich editor → sanitized HTML. parsePostContent / renderPostHtml live in
+  // utils/format.js so Feed and Saved render identically.
+  const resetComposer = () => {
+    setContent("");
+    setContentText("");
+    setAttachedImage(null);
+    setAttachedFile(null);
+    setAttachedVideo(null);
+    setComposerKey((k) => k + 1); // remount editor → clears contentEditable
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (videoInputRef.current) videoInputRef.current.value = "";
   };
 
   const publishPost = async () => {
-    const nextContent = content.trim();
-    if (!nextContent && !attachedImage && !attachedFile && !attachedVideo) return;
+    const html = sanitizeHtml(content).trim();
+    const hasText = contentText.trim().length > 0;
+    if (!hasText && !attachedImage && !attachedFile && !attachedVideo) return;
+    if (contentText.length > 500) { setError("Posts are limited to 500 characters."); return; }
     setPosting(true);
     setError("");
     try {
-      let finalContent = nextContent;
+      let finalContent = hasText ? html : "";
       if (attachedImage) {
         finalContent += `\n\n[media:{"type":"image","data":${JSON.stringify(attachedImage)}}]`;
       } else if (attachedFile) {
@@ -257,13 +185,7 @@ export function FeedPage() {
 
       const post = await createPost(finalContent, token);
       setPosts((current) => [post, ...current]);
-      setContent("");
-      setAttachedImage(null);
-      setAttachedFile(null);
-      setAttachedVideo(null);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (videoInputRef.current) videoInputRef.current.value = "";
+      resetComposer();
       showToast("Post published");
     } catch (err) {
       if (err.status === 401) { signOut(); return; }
@@ -380,68 +302,12 @@ export function FeedPage() {
         <section className="composer" aria-label="Create post">
           <div className="composer__avatar">{initials(user?.name || user?.email)}</div>
           <div className="composer__body">
-            <div className="composer__format-bar">
-              <button type="button" className="format-btn" onClick={() => insertFormat("b")} title="Bold">
-                <strong>B</strong>
-              </button>
-              <button type="button" className="format-btn" onClick={() => insertFormat("i")} title="Italic">
-                <em>I</em>
-              </button>
-              <button type="button" className="format-btn" onClick={() => insertFormat("u")} title="Underline">
-                <u>U</u>
-              </button>
-              
-              <div className="format-separator" />
-
-              <select
-                className="format-select"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    insertFormat("color", e.target.value);
-                    e.target.value = "";
-                  }
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>Color</option>
-                <option value="green">Green</option>
-                <option value="teal">Teal</option>
-                <option value="amber">Amber</option>
-                <option value="red">Red</option>
-              </select>
-
-              <select
-                className="format-select"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    insertFormat("font", e.target.value);
-                    e.target.value = "";
-                  }
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>Font</option>
-                <option value="geist">Geist</option>
-                <option value="monospace">Monospace</option>
-                <option value="serif">Serif</option>
-              </select>
-            </div>
-
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(event) => {
-                setContent(event.target.value);
-                const el = event.target;
-                el.style.height = "auto";
-                el.style.height = Math.min(el.scrollHeight, 280) + "px";
-              }}
-              maxLength={500}
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") publishPost();
-              }}
-              placeholder={`What's on your mind, ${user?.name?.split(" ")[0] || "there"}? Share an insight with your network…`}
-              rows={3}
+            <RichTextEditor
+              key={composerKey}
+              editorRef={editorRef}
+              onSubmit={publishPost}
+              placeholder={`What's on your mind, ${user?.name?.split(" ")[0] || "there"}? Share an insight…`}
+              onChange={({ html, text }) => { setContent(html); setContentText(text); }}
             />
 
             {attachedImage && (
@@ -494,14 +360,14 @@ export function FeedPage() {
                 </button>
               </div>
 
-              <span className="composer__count" style={{ color: content.length > 450 ? "var(--danger)" : undefined }}>
-                {content.trim().length}/500
+              <span className="composer__count" style={{ color: contentText.length > 450 ? "var(--danger)" : undefined }}>
+                {contentText.trim().length}/500
               </span>
               <button
                 className="button button--primary"
                 onClick={publishPost}
                 type="button"
-                disabled={posting || (!content.trim() && !attachedImage && !attachedFile && !attachedVideo)}
+                disabled={posting || (!contentText.trim() && !attachedImage && !attachedFile && !attachedVideo)}
               >
                 {posting ? <Spinner label="Publishing" /> : <><Icons.Send /> Publish</>}
               </button>
@@ -516,7 +382,7 @@ export function FeedPage() {
         ) : sortedPosts.length === 0 ? (
           <EmptyState
             icon={Icons.Inbox}
-            title="Your feed is empty"
+            title="Fresh off the press — nothing printed yet"
             detail="Publish your first update or connect with other members to see their posts here."
           />
         ) : (
@@ -543,7 +409,7 @@ export function FeedPage() {
                         {text && (
                           <p
                             style={{ fontSize: 14.5, lineHeight: 1.7 }}
-                            dangerouslySetInnerHTML={{ __html: renderFormattedText(text) }}
+                            dangerouslySetInnerHTML={{ __html: renderPostHtml(text) }}
                           />
                         )}
 

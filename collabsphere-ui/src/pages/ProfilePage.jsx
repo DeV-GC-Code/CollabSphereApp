@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { animate } from "motion";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyConnections } from "../api/connections.js";
 import { getUserPosts } from "../api/posts.js";
@@ -9,6 +10,101 @@ import { Spinner } from "../components/Spinner.jsx";
 import { Toast } from "../components/Toast.jsx";
 import { initials } from "../utils/format.js";
 
+/* ─────────────────────────────────────────────────────────
+   Animated counter hook — counts from 0 to value on mount
+───────────────────────────────────────────────────────── */
+function useAnimatedCounter(value, duration = 900) {
+  const [display, setDisplay] = useState(0);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (value === null || value === undefined) return;
+    const end = Number(value) || 0;
+    const start = 0;
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 4); // quartic ease-out
+      setDisplay(Math.round(start + (end - start) * eased));
+      if (progress < 1) rafRef.current = requestAnimationFrame(step);
+    };
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value, duration]);
+
+  return display;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Circular SVG progress ring
+───────────────────────────────────────────────────────── */
+function StrengthRing({ percent }) {
+  const size = 96;
+  const stroke = 7;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (percent / 100) * circ;
+  const ringRef = useRef(null);
+
+  useEffect(() => {
+    if (!ringRef.current) return;
+    animate(
+      ringRef.current,
+      { strokeDashoffset: [circ, offset] },
+      { duration: 1.1, easing: [0.34, 1.56, 0.64, 1] }
+    );
+  }, [offset, circ]);
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+      <circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none"
+        stroke="var(--outline)"
+        strokeWidth={stroke}
+      />
+      <circle
+        ref={ringRef}
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none"
+        stroke="url(#ringGrad)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={circ}
+      />
+      <defs>
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="var(--primary-light)" />
+          <stop offset="100%" stopColor="var(--primary)" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   Stat tile component
+───────────────────────────────────────────────────────── */
+function StatTile({ value, label, icon: Icon, delay = 0 }) {
+  const count = useAnimatedCounter(value, 900 + delay);
+  return (
+    <div className="profile-stat-tile">
+      <span className="profile-stat-tile__num">{value === null ? "—" : count}</span>
+      <span className="profile-stat-tile__label">
+        {Icon && <Icon />}
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   Main ProfilePage
+───────────────────────────────────────────────────────── */
 export function ProfilePage() {
   const { user, token, signOut } = useAuth();
   const navigate = useNavigate();
@@ -20,8 +116,8 @@ export function ProfilePage() {
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState("");
 
-  const showToast = (message) => {
-    setToast(message);
+  const showToast = (msg) => {
+    setToast(msg);
     window.setTimeout(() => setToast(""), 2600);
   };
 
@@ -34,15 +130,9 @@ export function ProfilePage() {
         getUserPosts(user.id, token),
         getMySpheresActivity(token),
       ]);
-      if (conns.status === "fulfilled") {
-        setConnectionCount(Array.isArray(conns.value) ? conns.value.length : 0);
-      }
-      if (posts.status === "fulfilled") {
-        setPostCount(Array.isArray(posts.value) ? posts.value.length : 0);
-      }
-      if (spheres.status === "fulfilled") {
-        setJoinedSpheres(Array.isArray(spheres.value) ? spheres.value : []);
-      }
+      if (conns.status === "fulfilled") setConnectionCount(Array.isArray(conns.value) ? conns.value.length : 0);
+      if (posts.status === "fulfilled") setPostCount(Array.isArray(posts.value) ? posts.value.length : 0);
+      if (spheres.status === "fulfilled") setJoinedSpheres(Array.isArray(spheres.value) ? spheres.value : []);
     } catch (err) {
       if (err?.status === 401) signOut();
     } finally {
@@ -52,25 +142,17 @@ export function ProfilePage() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  // Load persistent skills from localStorage
   useEffect(() => {
-    if (user?.id) {
-      const saved = localStorage.getItem(`collabsphere.skills_${user.id}`);
-      if (saved) {
-        try {
-          setSkills(JSON.parse(saved));
-        } catch {
-          setSkills([]);
-        }
-      }
+    if (!user?.id) return;
+    const saved = localStorage.getItem(`collabsphere.skills_${user.id}`);
+    if (saved) {
+      try { setSkills(JSON.parse(saved)); } catch { setSkills([]); }
     }
   }, [user?.id]);
 
-  const saveSkills = (nextSkills) => {
-    setSkills(nextSkills);
-    if (user?.id) {
-      localStorage.setItem(`collabsphere.skills_${user.id}`, JSON.stringify(nextSkills));
-    }
+  const saveSkills = (next) => {
+    setSkills(next);
+    if (user?.id) localStorage.setItem(`collabsphere.skills_${user.id}`, JSON.stringify(next));
   };
 
   const handleAddSkill = (e) => {
@@ -78,156 +160,156 @@ export function ProfilePage() {
     const clean = newSkill.trim();
     if (!clean) return;
     if (skills.some(s => s.toLowerCase() === clean.toLowerCase())) {
-      showToast("Skill already exists!");
+      showToast("Skill already added");
       return;
     }
-    const next = [...skills, clean];
-    saveSkills(next);
+    saveSkills([...skills, clean]);
     setNewSkill("");
-    showToast(`Added skill: ${clean}`);
+    showToast(`Added: ${clean}`);
   };
 
-  const handleDeleteSkill = (skillToDelete) => {
-    const next = skills.filter(s => s !== skillToDelete);
-    saveSkills(next);
-    showToast(`Removed skill: ${skillToDelete}`);
+  const handleDeleteSkill = (s) => {
+    saveSkills(skills.filter(x => x !== s));
+    showToast(`Removed: ${s}`);
   };
 
-  // Profile strength meter math
+  /* Profile strength */
   const checklist = [
-    { id: "name", label: "Display Name Set", completed: Boolean(user?.name) },
-    { id: "worksAt", label: "Workplace / School Linked", completed: Boolean(user?.worksAt) },
-    { id: "skills_min", label: "Add 3+ Core Skills", completed: skills.length >= 3 },
-    { id: "skills_adv", label: "Add 5+ Core Skills", completed: skills.length >= 5 },
-    { id: "posts", label: "Publish a Community Post", completed: Boolean(postCount && postCount > 0) },
-    { id: "connections", label: "Build 1+ Connection", completed: Boolean(connectionCount && connectionCount > 0) },
+    { id: "name",        label: "Display name set",       done: Boolean(user?.name) },
+    { id: "workplace",   label: "Workplace linked",        done: Boolean(user?.worksAt) },
+    { id: "skills3",     label: "3+ skills added",         done: skills.length >= 3 },
+    { id: "skills5",     label: "5+ skills added",         done: skills.length >= 5 },
+    { id: "posts",       label: "Post published",          done: Boolean(postCount && postCount > 0) },
+    { id: "connections", label: "1+ connection made",      done: Boolean(connectionCount && connectionCount > 0) },
   ];
-
-  const completedCount = checklist.filter(c => c.completed).length;
-  const totalCount = checklist.length;
-  const strengthPercent = Math.round((completedCount / totalCount) * 100);
-
-  let levelName = "Beginner";
-  let badgeClass = "strength-badge--beginner";
-  if (strengthPercent >= 80) {
-    levelName = "Elite Specialist";
-    badgeClass = "strength-badge--advanced";
-  } else if (strengthPercent >= 40) {
-    levelName = "Rising Star";
-    badgeClass = "strength-badge--intermediate";
-  }
+  const doneCount = checklist.filter(c => c.done).length;
+  const pct = Math.round((doneCount / checklist.length) * 100);
+  const levelName = pct >= 80 ? "Elite" : pct >= 40 ? "Rising" : "Starter";
 
   return (
-    <div className="page page--wide profile-page">
-      <section className="profile-hero">
-        <div className="profile-hero__banner profile-hero__banner--gradient" />
-        <div className="profile-hero__content">
-          <div className="profile-hero__avatar profile-hero__avatar--glow">{initials(user?.name || user?.email)}</div>
-          <h1>{user?.name || "CollabSphere Member"}</h1>
-          {user?.worksAt && (
-            <p style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 4 }}>
-              <Icons.Briefcase />
-              {user.worksAt}
-            </p>
-          )}
-          <p>{user?.email}</p>
-          <div className="profile-hero__actions">
-            <button
-              className="button button--primary"
-              type="button"
-              onClick={() => showToast("Profile editing coming soon.")}
-            >
-              <Icons.Edit /> Edit profile
-            </button>
-            <button
-              className="button button--secondary"
-              type="button"
-              onClick={() => navigate("/messages")}
-            >
-              <Icons.Message /> Message
-            </button>
+    <div className="profile-page-v2">
+
+      {/* ── HERO ────────────────────────────────────────────── */}
+      <section className="profile-hero-v2">
+        <div className="profile-hero-v2__mesh" />
+
+        <div className="profile-hero-v2__inner">
+          <div className="profile-hero-v2__identity">
+            <div className="profile-avatar-ring">
+              <div className="profile-avatar-ring__spinner" />
+              <div className="profile-avatar-ring__avatar">
+                {initials(user?.name || user?.email)}
+              </div>
+            </div>
+            <div className="profile-hero-v2__info">
+              <h1 className="profile-hero-v2__name">
+                {user?.name || "CollabSphere Member"}
+              </h1>
+              {user?.worksAt && (
+                <p className="profile-hero-v2__meta">
+                  <Icons.Briefcase />
+                  {user.worksAt}
+                </p>
+              )}
+              <p className="profile-hero-v2__meta">{user?.email}</p>
+              <div className="profile-hero-v2__actions">
+                <button
+                  className="btn-hero btn-hero--primary"
+                  type="button"
+                  onClick={() => showToast("Profile editing coming soon.")}
+                >
+                  <Icons.Edit />
+                  Edit profile
+                </button>
+                <button
+                  className="btn-hero btn-hero--ghost"
+                  type="button"
+                  onClick={() => navigate("/messages")}
+                >
+                  <Icons.Message />
+                  Message
+                </button>
+              </div>
+            </div>
           </div>
+
+          {!loading && (
+            <div className="profile-hero-v2__stats">
+              <StatTile value={connectionCount} label="Connections" icon={Icons.Network} delay={0} />
+              <StatTile value={postCount} label="Posts" icon={Icons.Send} delay={100} />
+              <StatTile value={joinedSpheres.length} label="Spheres" icon={Icons.Hub} delay={200} />
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ── My Stats Card ───────────────────────────────────── */}
-      {!loading && (
-        <section className="profile-stats-card glass-card">
-          <h3 className="profile-stats-card__title">My Stats</h3>
-          <div className="profile-stats-bars">
-            <div className="profile-stat-bar">
-              <div className="profile-stat-bar__label">
-                <Icons.Send />
-                <span>Posts</span>
-                <strong>{postCount ?? 0}</strong>
-              </div>
-              <div className="profile-stat-bar__track">
-                <div className="profile-stat-bar__fill profile-stat-bar__fill--posts" style={{ width: `${Math.min(100, (postCount || 0) * 10)}%` }} />
-              </div>
-            </div>
-            <div className="profile-stat-bar">
-              <div className="profile-stat-bar__label">
-                <Icons.Network />
-                <span>Connections</span>
-                <strong>{connectionCount ?? 0}</strong>
-              </div>
-              <div className="profile-stat-bar__track">
-                <div className="profile-stat-bar__fill profile-stat-bar__fill--connections" style={{ width: `${Math.min(100, (connectionCount || 0) * 5)}%` }} />
-              </div>
-            </div>
-            <div className="profile-stat-bar">
-              <div className="profile-stat-bar__label">
-                <Icons.Hub />
-                <span>Spheres</span>
-                <strong>{joinedSpheres.length}</strong>
-              </div>
-              <div className="profile-stat-bar__track">
-                <div className="profile-stat-bar__fill profile-stat-bar__fill--spheres" style={{ width: `${Math.min(100, joinedSpheres.length * 12)}%` }} />
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── BENTO GRID ──────────────────────────────────────── */}
+      <div className="profile-bento">
 
-      <section className="profile-grid">
-        <article className="glass-card profile-grid__wide">
-          <h2>About</h2>
-          <p style={{ marginTop: 8, lineHeight: 1.7 }}>
+        {/* About */}
+        <article className="bento-card bento-about">
+          <div className="bento-card__header">
+            <span className="bento-card__icon"><Icons.User /></span>
+            <h2>About</h2>
+          </div>
+          <p className="bento-card__body">
             {user?.name
               ? `${user.name}${user.worksAt ? ` works at ${user.worksAt}` : ""} and is a verified CollabSphere member. Connect to see their posts and activity.`
               : "Update your profile to let your network know more about you."}
           </p>
         </article>
 
-        {/* ── Dynamic Skills Manager ──────────────────────── */}
-        <article className="glass-card profile-grid__wide skills-card">
-          <div className="skills-card__header">
+        {/* Profile Strength */}
+        <article className="bento-card bento-strength">
+          <div className="bento-card__header">
+            <span className="bento-card__icon"><Icons.Star /></span>
+            <h2>Profile<br/>Strength</h2>
+          </div>
+          <div className="strength-ring-wrap">
+            <div className="strength-ring-center">
+              <StrengthRing percent={pct} />
+              <div className="strength-ring-label">
+                <span className="strength-ring-pct">{pct}%</span>
+                <span className="strength-ring-level">{levelName}</span>
+              </div>
+            </div>
+            <ul className="strength-list">
+              {checklist.map(item => (
+                <li key={item.id} className={`strength-list__item${item.done ? " done" : ""}`}>
+                  {item.done
+                    ? <Icons.Check />
+                    : <span className="strength-list__dot" />}
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+
+        {/* Skills */}
+        <article className="bento-card bento-skills">
+          <div className="bento-card__header">
+            <span className="bento-card__icon"><Icons.Hub /></span>
             <h2>Skills &amp; Expertise</h2>
             {skills.length > 0 && (
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>
-                {skills.length} skills added
-              </span>
+              <span className="bento-card__count">{skills.length} skills</span>
             )}
           </div>
 
           {skills.length === 0 ? (
-            <div className="skills-installer-banner">
-              <p>
-                <strong>Add your first skills.</strong>
-                <br />
-                Highlight the tools, domains, and strengths you want collaborators to discover.
-              </p>
-            </div>
+            <p className="bento-card__empty">
+              No skills yet — add your tools, domains, and strengths.
+            </p>
           ) : (
-            <div className="skills-grid">
+            <div className="skills-bubble-grid">
               {skills.map((skill) => (
-                <span className="skill-pill" key={skill}>
+                <span key={skill} className="skill-bubble">
                   {skill}
                   <button
-                    className="skill-pill__delete"
                     type="button"
+                    className="skill-bubble__del"
                     onClick={() => handleDeleteSkill(skill)}
-                    aria-label={`Delete skill ${skill}`}
+                    aria-label={`Remove ${skill}`}
                   >
                     <Icons.X />
                   </button>
@@ -236,117 +318,80 @@ export function ProfilePage() {
             </div>
           )}
 
-          <form className="skills-add-form" onSubmit={handleAddSkill}>
+          <form className="skills-add-row" onSubmit={handleAddSkill}>
             <input
               value={newSkill}
-              onChange={(e) => setNewSkill(e.target.value)}
-              placeholder="Add skill (e.g. React, Kubernetes...)"
+              onChange={e => setNewSkill(e.target.value)}
+              placeholder="Add skill  e.g. React, Kubernetes…"
               maxLength={30}
             />
-            <button className="button button--primary" type="submit">
-              <Icons.Plus /> Add
+            <button className="btn-add" type="submit">
+              <Icons.Plus />
             </button>
           </form>
         </article>
 
-        {/* ── Gamified Profile Strength Card ──────────────── */}
-        <article className="glass-card profile-strength-card">
-          <div className="profile-strength-header">
-            <h3>Profile Strength</h3>
-            <span className={`strength-badge ${badgeClass}`}>{levelName}</span>
-          </div>
-
-          <div className="strength-progress">
-            <div className="strength-progress__meta">
-              <span>{strengthPercent}% Complete</span>
-              <span>{completedCount}/{totalCount} Items</span>
-            </div>
-            <div className="strength-progress__track">
-              <div
-                className="strength-progress__fill"
-                style={{ width: `${strengthPercent}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="strength-checklist">
-            {checklist.map((item) => (
-              <div
-                key={item.id}
-                className={`strength-checklist__item${item.completed ? " completed" : ""}`}
-              >
-                {item.completed ? (
-                  <Icons.Check style={{ color: "var(--success)" }} />
-                ) : (
-                  <Icons.Plus style={{ color: "var(--text-muted)", opacity: 0.5 }} />
-                )}
-                <span>{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="glass-card">
-          <h2>Network Stats</h2>
-          {loading ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
-              <Spinner label="Loading stats" />
-            </div>
-          ) : (
-            <div className="metric-strip" style={{ marginTop: 8 }}>
-              <div>
-                <strong>{connectionCount ?? "—"}</strong>
-                <span>Connections</span>
-              </div>
-              <div>
-                <strong>{postCount ?? "—"}</strong>
-                <span>Posts</span>
-              </div>
-              <div>
-                <strong>{joinedSpheres.length}</strong>
-                <span>Spheres</span>
-              </div>
-            </div>
-          )}
-        </article>
-
-        <article className="glass-card">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>Spheres</h2>
+        {/* Spheres */}
+        <article className="bento-card bento-spheres">
+          <div className="bento-card__header">
+            <span className="bento-card__icon"><Icons.Globe /></span>
+            <h2>Spheres</h2>
             {joinedSpheres.length > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)" }}>{joinedSpheres.length} joined</span>
+              <span className="bento-card__count">{joinedSpheres.length} joined</span>
             )}
           </div>
+
           {loading ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
-              <Spinner label="Loading spheres" />
-            </div>
+            <div className="bento-spinner"><Spinner label="Loading" /></div>
           ) : joinedSpheres.length === 0 ? (
-            <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-muted)" }}>
-              You haven't joined any spheres yet.
-            </p>
+            <p className="bento-card__empty">You haven't joined any spheres yet.</p>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {joinedSpheres.slice(0, 6).map((s) => (
-                <a
-                  key={s.id}
-                  href="/spheres"
-                  className="chip"
-                  style={{ textDecoration: "none", fontSize: 12 }}
-                >
-                  <Icons.Hub style={{ marginRight: 4 }} />{s.name}
+            <div className="spheres-chip-grid">
+              {joinedSpheres.slice(0, 8).map(s => (
+                <a key={s.id} href="/spheres" className="sphere-chip">
+                  <Icons.Hub />
+                  {s.name}
                 </a>
               ))}
-              {joinedSpheres.length > 6 && (
-                <span className="chip" style={{ fontSize: 12, opacity: 0.7 }}>+{joinedSpheres.length - 6} more</span>
+              {joinedSpheres.length > 8 && (
+                <span className="sphere-chip sphere-chip--more">+{joinedSpheres.length - 8}</span>
               )}
             </div>
           )}
-          <a href="/spheres" className="button button--secondary button--sm" style={{ textDecoration: "none" }}>
-            <Icons.Globe /> Browse Spheres
+
+          <a href="/spheres" className="bento-link-btn">
+            Explore Spheres <Icons.ChevronRight />
           </a>
         </article>
-      </section>
+
+        {/* Network */}
+        <article className="bento-card bento-network">
+          <div className="bento-card__header">
+            <span className="bento-card__icon"><Icons.Network /></span>
+            <h2>Network</h2>
+          </div>
+
+          {loading ? (
+            <div className="bento-spinner"><Spinner label="Loading" /></div>
+          ) : (
+            <div className="network-stat-grid">
+              <div className="network-stat">
+                <span className="network-stat__num">{connectionCount ?? "—"}</span>
+                <span className="network-stat__label">Connections</span>
+              </div>
+              <div className="network-stat">
+                <span className="network-stat__num">{postCount ?? "—"}</span>
+                <span className="network-stat__label">Posts</span>
+              </div>
+            </div>
+          )}
+
+          <a href="/network" className="bento-link-btn">
+            Grow network <Icons.ChevronRight />
+          </a>
+        </article>
+
+      </div>
 
       <Toast message={toast} />
     </div>

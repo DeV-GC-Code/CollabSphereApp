@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { Toast } from "../components/Toast.jsx";
-import { initials, timeAgo } from "../utils/format.js";
+import { initials, timeAgo, parsePostContent, renderPostHtml } from "../utils/format.js";
 import { loadSavedPosts, toggleSaved } from "../utils/saved.js";
 
 export function SavedPage() {
@@ -60,6 +60,7 @@ export function SavedPage() {
           {savedPosts.map((post, index) => {
             const authorName = post._authorName || `User ${post.userId}`;
             const authorMeta = post._authorMeta || "CollabSphere member";
+            const { text, media } = parsePostContent(post.content);
             return (
               <article
                 className={`saved-card${index === 0 ? " saved-card--wide" : ""}`}
@@ -79,9 +80,31 @@ export function SavedPage() {
                   </button>
                 </div>
                 <div>
-                  <p style={{ fontSize: 14.5, lineHeight: 1.7, marginBottom: 8 }}>
-                    {post.content}
-                  </p>
+                  {text && (
+                    <p
+                      style={{ fontSize: 14.5, lineHeight: 1.7, marginBottom: 8 }}
+                      dangerouslySetInnerHTML={{ __html: renderPostHtml(text) }}
+                    />
+                  )}
+                  {media && media.type === "image" && (
+                    <div className="post-card__media-container">
+                      <img src={media.data} alt="Saved attachment" className="post-card__media-image" />
+                    </div>
+                  )}
+                  {media && media.type === "video" && (
+                    <div className="post-card__media-container">
+                      <video src={media.data} controls className="post-card__media-video" style={{ width: "100%", maxHeight: 280, borderRadius: 8, background: "#000" }} />
+                    </div>
+                  )}
+                  {media && media.type === "file" && (
+                    <a href={media.data} download={media.name} className="post-card__media-file">
+                      <Icons.Briefcase style={{ color: "var(--accent-ink)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{media.name}</span>
+                    </a>
+                  )}
+                  {!text && !media && (
+                    <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 8 }}>No preview available.</p>
+                  )}
                 </div>
                 <footer>
                   <div className="avatar avatar--sm">{initials(authorName)}</div>

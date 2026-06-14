@@ -274,7 +274,7 @@ export function NetworkPage() {
                   <span>{receivedRequests.length} pending</span>
                 </div>
                 {receivedRequests.length === 0 ? (
-                  <EmptyState title="No invitations right now" detail="Connection invitations from other members will appear here." />
+                  <EmptyState title="No letters to the editor today" detail="Connection invitations from other members will appear here." />
                 ) : (
                   <div className="linkedin-list">
                     {receivedRequests.map((person) => <PersonCard compact key={person.userId} person={person} />)}

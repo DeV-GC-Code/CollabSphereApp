@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { getSpheres } from "../api/spheres.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { Icons } from "./Icons.jsx";
+import { useCountUp } from "../utils/useCountUp.js";
 
 export function ContextRail({ connectionsCount = 0, postsCount = 0 }) {
   const navigate = useNavigate();
   const { token } = useAuth();
+  const postsDisplay = useCountUp(postsCount);
+  const connectionsDisplay = useCountUp(connectionsCount);
   const [trendingTags, setTrendingTags] = useState([]);
 
   useEffect(() => {
@@ -45,11 +48,11 @@ export function ContextRail({ connectionsCount = 0, postsCount = 0 }) {
         </div>
         <div className="metric-grid">
           <div>
-            <strong>{postsCount}</strong>
+            <strong>{postsDisplay}</strong>
             <span>Feed posts</span>
           </div>
           <div>
-            <strong>{connectionsCount}</strong>
+            <strong>{connectionsDisplay}</strong>
             <span>Connections</span>
           </div>
         </div>
