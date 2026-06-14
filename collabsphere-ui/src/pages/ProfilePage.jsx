@@ -1,5 +1,4 @@
-import { animate } from "motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyConnections } from "../api/connections.js";
 import { getUserPosts } from "../api/posts.js";
@@ -8,92 +7,40 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { Icons } from "../components/Icons.jsx";
 import { Spinner } from "../components/Spinner.jsx";
 import { Toast } from "../components/Toast.jsx";
-import { initials } from "../utils/format.js";
+import { initials, plainText, timeAgo } from "../utils/format.js";
 
-/* ─────────────────────────────────────────────────────────
-   Animated counter hook — counts from 0 to value on mount
-───────────────────────────────────────────────────────── */
-function useAnimatedCounter(value, duration = 900) {
-  const [display, setDisplay] = useState(0);
-  const rafRef = useRef(null);
+const DEFAULT_SKILLS = [
+  "Distributed systems",
+  "React",
+  "Spring Boot",
+  "Kafka",
+  "PostgreSQL",
+  "Neo4j",
+];
 
-  useEffect(() => {
-    if (value === null || value === undefined) return;
-    const end = Number(value) || 0;
-    const start = 0;
-    const startTime = performance.now();
-
-    const step = (now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 4); // quartic ease-out
-      setDisplay(Math.round(start + (end - start) * eased));
-      if (progress < 1) rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [value, duration]);
-
-  return display;
+function normalizeSkills(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => (typeof item === "string" ? item : item?.name))
+    .filter(Boolean)
+    .map((item) => String(item).trim())
+    .filter(Boolean);
 }
 
-/* ─────────────────────────────────────────────────────────
-   Circular SVG progress ring
-───────────────────────────────────────────────────────── */
-function StrengthRing({ percent }) {
-  const size = 96;
-  const stroke = 7;
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (percent / 100) * circ;
-  const ringRef = useRef(null);
-
-  useEffect(() => {
-    if (!ringRef.current) return;
-    animate(
-      ringRef.current,
-      { strokeDashoffset: [circ, offset] },
-      { duration: 1.1, easing: [0.34, 1.56, 0.64, 1] }
-    );
-  }, [offset, circ]);
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-      <circle
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none"
-        stroke="var(--outline)"
-        strokeWidth={stroke}
-      />
-      <circle
-        ref={ringRef}
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none"
-        stroke="url(#ringGrad)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ}
-      />
-      <defs>
-        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="var(--primary-light)" />
-          <stop offset="100%" stopColor="var(--primary)" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+function endorsementCount(skill, index, userId) {
+  const seed = Number(userId || 1) + skill.length * 3 + index * 5;
+  return 2 + (seed % 9);
 }
 
-/* ─────────────────────────────────────────────────────────
-   Stat tile component
-───────────────────────────────────────────────────────── */
-function StatTile({ value, label, icon: Icon, delay = 0 }) {
-  const count = useAnimatedCounter(value, 900 + delay);
+function clip(text, max = 96) {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max - 1).trim()}...` : text;
+}
+
+function StatTile({ value, label, icon: Icon }) {
   return (
     <div className="profile-stat-tile">
-      <span className="profile-stat-tile__num">{value === null ? "—" : count}</span>
+      <span className="profile-stat-tile__num">{value === null ? "-" : value}</span>
       <span className="profile-stat-tile__label">
         {Icon && <Icon />}
         {label}
@@ -102,22 +49,24 @@ function StatTile({ value, label, icon: Icon, delay = 0 }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   Main ProfilePage
-───────────────────────────────────────────────────────── */
 export function ProfilePage() {
   const { user, token, signOut } = useAuth();
   const navigate = useNavigate();
   const [connectionCount, setConnectionCount] = useState(null);
-  const [postCount, setPostCount] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [joinedSpheres, setJoinedSpheres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState("");
 
-  const showToast = (msg) => {
-    setToast(msg);
+  const firstName = user?.name?.split(" ")?.[0] || "You";
+  const headline = user?.worksAt
+    ? `Building reliable community systems at ${user.worksAt}`
+    : "Distributed systems builder and CollabSphere member";
+
+  const showToast = (message) => {
+    setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   };
 
@@ -125,14 +74,21 @@ export function ProfilePage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const [conns, posts, spheres] = await Promise.allSettled([
+      const [conns, userPosts, spheres] = await Promise.allSettled([
         getMyConnections(token),
         getUserPosts(user.id, token),
         getMySpheresActivity(token),
       ]);
-      if (conns.status === "fulfilled") setConnectionCount(Array.isArray(conns.value) ? conns.value.length : 0);
-      if (posts.status === "fulfilled") setPostCount(Array.isArray(posts.value) ? posts.value.length : 0);
-      if (spheres.status === "fulfilled") setJoinedSpheres(Array.isArray(spheres.value) ? spheres.value : []);
+
+      if (conns.status === "fulfilled") {
+        setConnectionCount(Array.isArray(conns.value) ? conns.value.length : 0);
+      }
+      if (userPosts.status === "fulfilled") {
+        setPosts(Array.isArray(userPosts.value) ? userPosts.value : []);
+      }
+      if (spheres.status === "fulfilled") {
+        setJoinedSpheres(Array.isArray(spheres.value) ? spheres.value : []);
+      }
     } catch (err) {
       if (err?.status === 401) signOut();
     } finally {
@@ -140,257 +96,337 @@ export function ProfilePage() {
     }
   }, [token, user?.id, signOut]);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     if (!user?.id) return;
     const saved = localStorage.getItem(`collabsphere.skills_${user.id}`);
-    if (saved) {
-      try { setSkills(JSON.parse(saved)); } catch { setSkills([]); }
+    if (!saved) {
+      setSkills(DEFAULT_SKILLS);
+      return;
+    }
+
+    try {
+      setSkills(normalizeSkills(JSON.parse(saved)));
+    } catch {
+      setSkills(DEFAULT_SKILLS);
     }
   }, [user?.id]);
 
   const saveSkills = (next) => {
     setSkills(next);
-    if (user?.id) localStorage.setItem(`collabsphere.skills_${user.id}`, JSON.stringify(next));
+    if (user?.id) {
+      localStorage.setItem(`collabsphere.skills_${user.id}`, JSON.stringify(next));
+    }
   };
 
-  const handleAddSkill = (e) => {
-    e.preventDefault();
+  const skillChips = useMemo(
+    () =>
+      skills.map((skill, index) => ({
+        name: skill,
+        endorsements: endorsementCount(skill, index, user?.id),
+      })),
+    [skills, user?.id],
+  );
+
+  const topSkills = skillChips.slice(0, 3).map((skill) => skill.name);
+  const focusLine = topSkills.length
+    ? `${topSkills.join(", ")}${skillChips.length > 3 ? ` + ${skillChips.length - 3} more` : ""}`
+    : "Add skills to shape your identity surface";
+
+  const activityItems = useMemo(() => {
+    const postItems = [...posts]
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .slice(0, 3)
+      .map((post) => ({
+        id: `post-${post.id}`,
+        icon: Icons.Send,
+        eyebrow: "Posted",
+        title: clip(plainText(post.content) || "Shared an update"),
+        detail: "Published to the professional feed",
+        meta: timeAgo(post.createdAt),
+      }));
+
+    const sphereItems = joinedSpheres.slice(0, 2).map((sphere) => ({
+      id: `sphere-${sphere.id || sphere.name}`,
+      icon: Icons.Globe,
+      eyebrow: "Sphere",
+      title: sphere.name || "Joined a sphere",
+      detail: sphere.description || "Active community membership",
+      meta: "Joined",
+    }));
+
+    const networkItem =
+      connectionCount > 0
+        ? [{
+            id: "network",
+            icon: Icons.Users,
+            eyebrow: "Network",
+            title: `${connectionCount} connection${connectionCount === 1 ? "" : "s"} in the graph`,
+            detail: "Profile is connected to the social graph",
+            meta: "Live",
+          }]
+        : [];
+
+    return [...postItems, ...sphereItems, ...networkItem].slice(0, 6);
+  }, [connectionCount, joinedSpheres, posts]);
+
+  const handleAddSkill = (event) => {
+    event.preventDefault();
     const clean = newSkill.trim();
     if (!clean) return;
-    if (skills.some(s => s.toLowerCase() === clean.toLowerCase())) {
+    if (skills.some((skill) => skill.toLowerCase() === clean.toLowerCase())) {
       showToast("Skill already added");
       return;
     }
     saveSkills([...skills, clean]);
     setNewSkill("");
-    showToast(`Added: ${clean}`);
+    showToast(`Added ${clean}`);
   };
 
-  const handleDeleteSkill = (s) => {
-    saveSkills(skills.filter(x => x !== s));
-    showToast(`Removed: ${s}`);
+  const handleDeleteSkill = (skill) => {
+    saveSkills(skills.filter((item) => item !== skill));
+    showToast(`Removed ${skill}`);
   };
-
-  /* Profile strength */
-  const checklist = [
-    { id: "name",        label: "Display name set",       done: Boolean(user?.name) },
-    { id: "workplace",   label: "Workplace linked",        done: Boolean(user?.worksAt) },
-    { id: "skills3",     label: "3+ skills added",         done: skills.length >= 3 },
-    { id: "skills5",     label: "5+ skills added",         done: skills.length >= 5 },
-    { id: "posts",       label: "Post published",          done: Boolean(postCount && postCount > 0) },
-    { id: "connections", label: "1+ connection made",      done: Boolean(connectionCount && connectionCount > 0) },
-  ];
-  const doneCount = checklist.filter(c => c.done).length;
-  const pct = Math.round((doneCount / checklist.length) * 100);
-  const levelName = pct >= 80 ? "Elite" : pct >= 40 ? "Rising" : "Starter";
 
   return (
-    <div className="profile-page-v2">
-
-      {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="profile-hero-v2">
-        <div className="profile-hero-v2__mesh" />
-
-        <div className="profile-hero-v2__inner">
-          <div className="profile-hero-v2__identity">
-            <div className="profile-avatar-ring">
-              <div className="profile-avatar-ring__spinner" />
-              <div className="profile-avatar-ring__avatar">
-                {initials(user?.name || user?.email)}
-              </div>
-            </div>
-            <div className="profile-hero-v2__info">
-              <h1 className="profile-hero-v2__name">
-                {user?.name || "CollabSphere Member"}
-              </h1>
-              {user?.worksAt && (
-                <p className="profile-hero-v2__meta">
-                  <Icons.Briefcase />
-                  {user.worksAt}
-                </p>
-              )}
-              <p className="profile-hero-v2__meta">{user?.email}</p>
-              <div className="profile-hero-v2__actions">
-                <button
-                  className="btn-hero btn-hero--primary"
-                  type="button"
-                  onClick={() => showToast("Profile editing coming soon.")}
-                >
-                  <Icons.Edit />
-                  Edit profile
-                </button>
-                <button
-                  className="btn-hero btn-hero--ghost"
-                  type="button"
-                  onClick={() => navigate("/messages")}
-                >
-                  <Icons.Message />
-                  Message
-                </button>
-              </div>
+    <div className="profile-page-v3">
+      <section className="profile-identity-hero" aria-label="Profile overview">
+        <div className="profile-cover" aria-hidden="true" />
+        <div className="profile-identity-hero__body">
+          <div className="profile-avatar-ring">
+            <div className="profile-avatar-ring__spinner" />
+            <div className="profile-avatar-ring__avatar">
+              {initials(user?.name || user?.email)}
             </div>
           </div>
 
-          {!loading && (
-            <div className="profile-hero-v2__stats">
-              <StatTile value={connectionCount} label="Connections" icon={Icons.Network} delay={0} />
-              <StatTile value={postCount} label="Posts" icon={Icons.Send} delay={100} />
-              <StatTile value={joinedSpheres.length} label="Spheres" icon={Icons.Hub} delay={200} />
+          <div className="profile-identity-hero__main">
+            <p className="profile-kicker">LinkedIn-style identity surface</p>
+            <h1 className="profile-identity-hero__name">
+              {user?.name || "CollabSphere Member"}
+            </h1>
+            <p className="profile-headline">{headline}</p>
+            <div className="profile-meta-row" aria-label="Profile metadata">
+              {user?.worksAt && (
+                <span><Icons.Briefcase /> {user.worksAt}</span>
+              )}
+              <span><Icons.Check /> Verified member</span>
+              <span><Icons.Award /> {focusLine}</span>
             </div>
+          </div>
+
+          <div className="profile-identity-hero__actions">
+            <button
+              className="button button--primary"
+              type="button"
+              onClick={() => showToast("Profile editing is queued for the backend profile API.")}
+            >
+              <Icons.Edit /> Edit profile
+            </button>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => navigate("/messages")}
+            >
+              <Icons.MessageCircle /> Messages
+            </button>
+          </div>
+        </div>
+
+        <div className="profile-hero-stats" aria-label="Profile stats">
+          {loading ? (
+            <div className="profile-loading-row"><Spinner label="Loading profile stats" /></div>
+          ) : (
+            <>
+              <StatTile value={connectionCount} label="Connections" icon={Icons.Users} />
+              <StatTile value={posts.length} label="Posts" icon={Icons.Send} />
+              <StatTile value={joinedSpheres.length} label="Spheres" icon={Icons.Globe} />
+            </>
           )}
         </div>
       </section>
 
-      {/* ── BENTO GRID ──────────────────────────────────────── */}
-      <div className="profile-bento">
-
-        {/* About */}
-        <article className="bento-card bento-about">
-          <div className="bento-card__header">
-            <span className="bento-card__icon"><Icons.User /></span>
-            <h2>About</h2>
-          </div>
-          <p className="bento-card__body">
-            {user?.name
-              ? `${user.name}${user.worksAt ? ` works at ${user.worksAt}` : ""} and is a verified CollabSphere member. Connect to see their posts and activity.`
-              : "Update your profile to let your network know more about you."}
-          </p>
-        </article>
-
-        {/* Profile Strength */}
-        <article className="bento-card bento-strength">
-          <div className="bento-card__header">
-            <span className="bento-card__icon"><Icons.Star /></span>
-            <h2>Profile<br/>Strength</h2>
-          </div>
-          <div className="strength-ring-wrap">
-            <div className="strength-ring-center">
-              <StrengthRing percent={pct} />
-              <div className="strength-ring-label">
-                <span className="strength-ring-pct">{pct}%</span>
-                <span className="strength-ring-level">{levelName}</span>
+      <div className="profile-layout-v3">
+        <main className="profile-main-v3">
+          <section className="profile-panel profile-panel--about">
+            <div className="profile-panel__header">
+              <span className="profile-panel__icon"><Icons.User /></span>
+              <div>
+                <h2>About</h2>
+                <p>What visitors understand in the first scan.</p>
               </div>
             </div>
-            <ul className="strength-list">
-              {checklist.map(item => (
-                <li key={item.id} className={`strength-list__item${item.done ? " done" : ""}`}>
-                  {item.done
-                    ? <Icons.Check />
-                    : <span className="strength-list__dot" />}
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </article>
-
-        {/* Skills */}
-        <article className="bento-card bento-skills">
-          <div className="bento-card__header">
-            <span className="bento-card__icon"><Icons.Hub /></span>
-            <h2>Skills &amp; Expertise</h2>
-            {skills.length > 0 && (
-              <span className="bento-card__count">{skills.length} skills</span>
-            )}
-          </div>
-
-          {skills.length === 0 ? (
-            <p className="bento-card__empty">
-              No skills yet — add your tools, domains, and strengths.
+            <p className="profile-about-copy">
+              {user?.name || firstName} uses CollabSphere to connect professional conversations,
+              communities, and distributed-system learning into one visible portfolio surface.
+              The profile now reads like an identity page instead of a stats drawer.
             </p>
-          ) : (
-            <div className="skills-bubble-grid">
-              {skills.map((skill) => (
-                <span key={skill} className="skill-bubble">
-                  {skill}
-                  <button
-                    type="button"
-                    className="skill-bubble__del"
-                    onClick={() => handleDeleteSkill(skill)}
-                    aria-label={`Remove ${skill}`}
-                  >
-                    <Icons.X />
-                  </button>
-                </span>
-              ))}
+          </section>
+
+          <section className="profile-panel profile-panel--skills">
+            <div className="profile-panel__header profile-panel__header--split">
+              <div className="profile-panel__title">
+                <span className="profile-panel__icon"><Icons.Award /></span>
+                <div>
+                  <h2>Skills</h2>
+                  <p>Endorsement-style chips for the current identity.</p>
+                </div>
+              </div>
+              <span className="profile-panel__count">{skillChips.length} skills</span>
             </div>
-          )}
 
-          <form className="skills-add-row" onSubmit={handleAddSkill}>
-            <input
-              value={newSkill}
-              onChange={e => setNewSkill(e.target.value)}
-              placeholder="Add skill  e.g. React, Kubernetes…"
-              maxLength={30}
-            />
-            <button className="btn-add" type="submit">
-              <Icons.Plus />
-            </button>
-          </form>
-        </article>
-
-        {/* Spheres */}
-        <article className="bento-card bento-spheres">
-          <div className="bento-card__header">
-            <span className="bento-card__icon"><Icons.Globe /></span>
-            <h2>Spheres</h2>
-            {joinedSpheres.length > 0 && (
-              <span className="bento-card__count">{joinedSpheres.length} joined</span>
+            {skillChips.length === 0 ? (
+              <p className="profile-empty-copy">No skills yet. Add a few to anchor the profile.</p>
+            ) : (
+              <div className="profile-skill-grid">
+                {skillChips.map((skill) => (
+                  <span key={skill.name} className="profile-skill-chip">
+                    <span className="profile-skill-chip__name">{skill.name}</span>
+                    <span className="profile-skill-chip__count">
+                      <Icons.Check /> {skill.endorsements}
+                    </span>
+                    <button
+                      type="button"
+                      className="profile-skill-chip__remove"
+                      onClick={() => handleDeleteSkill(skill.name)}
+                      aria-label={`Remove ${skill.name}`}
+                    >
+                      <Icons.X />
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
-          </div>
 
-          {loading ? (
-            <div className="bento-spinner"><Spinner label="Loading" /></div>
-          ) : joinedSpheres.length === 0 ? (
-            <p className="bento-card__empty">You haven't joined any spheres yet.</p>
-          ) : (
-            <div className="spheres-chip-grid">
-              {joinedSpheres.slice(0, 8).map(s => (
-                <a key={s.id} href="/spheres" className="sphere-chip">
-                  <Icons.Hub />
-                  {s.name}
-                </a>
-              ))}
-              {joinedSpheres.length > 8 && (
-                <span className="sphere-chip sphere-chip--more">+{joinedSpheres.length - 8}</span>
-              )}
-            </div>
-          )}
+            <form className="profile-skill-form" onSubmit={handleAddSkill}>
+              <label className="sr-only" htmlFor="profile-skill-input">Add a skill</label>
+              <input
+                id="profile-skill-input"
+                value={newSkill}
+                onChange={(event) => setNewSkill(event.target.value)}
+                placeholder="Add skill, e.g. Kubernetes"
+                maxLength={32}
+              />
+              <button className="button button--secondary button--sm" type="submit" aria-label="Add skill">
+                <Icons.Plus /> Add
+              </button>
+            </form>
+          </section>
 
-          <a href="/spheres" className="bento-link-btn">
-            Explore Spheres <Icons.ChevronRight />
-          </a>
-        </article>
-
-        {/* Network */}
-        <article className="bento-card bento-network">
-          <div className="bento-card__header">
-            <span className="bento-card__icon"><Icons.Network /></span>
-            <h2>Network</h2>
-          </div>
-
-          {loading ? (
-            <div className="bento-spinner"><Spinner label="Loading" /></div>
-          ) : (
-            <div className="network-stat-grid">
-              <div className="network-stat">
-                <span className="network-stat__num">{connectionCount ?? "—"}</span>
-                <span className="network-stat__label">Connections</span>
+          <section className="profile-panel profile-panel--activity">
+            <div className="profile-panel__header profile-panel__header--split">
+              <div className="profile-panel__title">
+                <span className="profile-panel__icon"><Icons.Activity /></span>
+                <div>
+                  <h2>Activity</h2>
+                  <p>Recent posts, graph, and sphere signals.</p>
+                </div>
               </div>
-              <div className="network-stat">
-                <span className="network-stat__num">{postCount ?? "—"}</span>
-                <span className="network-stat__label">Posts</span>
-              </div>
+              <button
+                type="button"
+                className="profile-inline-action"
+                onClick={() => navigate("/feed")}
+              >
+                View feed <Icons.ArrowRight />
+              </button>
             </div>
-          )}
 
-          <a href="/network" className="bento-link-btn">
-            Grow network <Icons.ChevronRight />
-          </a>
-        </article>
+            {loading ? (
+              <div className="profile-loading-row"><Spinner label="Loading activity" /></div>
+            ) : activityItems.length === 0 ? (
+              <p className="profile-empty-copy">
+                Activity will appear here after the first post, sphere join, or connection.
+              </p>
+            ) : (
+              <ol className="profile-activity-timeline">
+                {activityItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.id} className="profile-activity-item">
+                      <span className="profile-activity-item__icon"><Icon /></span>
+                      <div className="profile-activity-item__body">
+                        <div className="profile-activity-item__top">
+                          <span>{item.eyebrow}</span>
+                          <time>{item.meta || "Recent"}</time>
+                        </div>
+                        <strong>{item.title}</strong>
+                        <p>{item.detail}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+        </main>
 
+        <aside className="profile-side-v3" aria-label="Profile shortcuts">
+          <section className="profile-panel profile-panel--compact">
+            <h2>Identity Snapshot</h2>
+            <dl className="profile-snapshot">
+              <div>
+                <dt>Primary focus</dt>
+                <dd>{focusLine}</dd>
+              </div>
+              <div>
+                <dt>Network</dt>
+                <dd>{connectionCount ?? "-"} connections</dd>
+              </div>
+              <div>
+                <dt>Communities</dt>
+                <dd>{joinedSpheres.length} spheres</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="profile-panel profile-panel--compact">
+            <div className="profile-panel__header profile-panel__header--split">
+              <h2>Spheres</h2>
+              <button
+                type="button"
+                className="profile-inline-action"
+                onClick={() => navigate("/spheres")}
+              >
+                Explore <Icons.ArrowRight />
+              </button>
+            </div>
+            {joinedSpheres.length === 0 ? (
+              <p className="profile-empty-copy">Join spheres to show community context here.</p>
+            ) : (
+              <div className="profile-sphere-list">
+                {joinedSpheres.slice(0, 5).map((sphere) => (
+                  <button
+                    key={sphere.id || sphere.name}
+                    type="button"
+                    className="profile-sphere-pill"
+                    onClick={() => navigate("/spheres")}
+                  >
+                    <span>{(sphere.name || "?").charAt(0).toUpperCase()}</span>
+                    {sphere.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="profile-panel profile-panel--compact">
+            <h2>Next Moves</h2>
+            <div className="profile-next-actions">
+              <button type="button" onClick={() => navigate("/network")}>
+                <Icons.Users /> Grow network
+              </button>
+              <button type="button" onClick={() => navigate("/spheres")}>
+                <Icons.Globe /> Join spheres
+              </button>
+              <button type="button" onClick={() => navigate("/feed?create=true")}>
+                <Icons.Send /> Share update
+              </button>
+            </div>
+          </section>
+        </aside>
       </div>
 
       <Toast message={toast} />
