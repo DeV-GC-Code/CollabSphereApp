@@ -55,6 +55,18 @@ export function SpheresPage() {
   const [postSubmitting, setPostSubmitting] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [postSort, setPostSort] = useState("hot"); // "hot" | "new" | "top" (Reddit-style)
+
+  // Client-side thread sorting. Hot = score with gentle time decay; New = recency; Top = score.
+  const sortedHubPosts = useMemo(() => {
+    const list = [...posts];
+    const ts = (p) => new Date(p.created_at || p.createdAt || 0).getTime();
+    if (postSort === "new") return list.sort((a, b) => ts(b) - ts(a));
+    if (postSort === "top") return list.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    // hot: score boosted by recency (hours since post)
+    const hot = (p) => (p.score ?? 0) - (Date.now() - ts(p)) / 36e5 * 0.15;
+    return list.sort((a, b) => hot(b) - hot(a));
+  }, [posts, postSort]);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -613,10 +625,25 @@ export function SpheresPage() {
             {/* Posts View */}
             {hubView === "posts" && (
               <div className="sphere-hub-discussion">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0 12px" }}>
-                  <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--text)" }}>
-                    Posts
-                  </h2>
+                <div className="sphere-sort-bar">
+                  <div className="sphere-sort" role="tablist" aria-label="Sort posts">
+                    {[
+                      { id: "hot", label: "Hot", icon: Icons.TrendingUp },
+                      { id: "new", label: "New", icon: Icons.Clock },
+                      { id: "top", label: "Top", icon: Icons.Award },
+                    ].map(({ id, label, icon: Ic }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="tab"
+                        aria-selected={postSort === id}
+                        className={`sphere-sort__tab${postSort === id ? " is-active" : ""}`}
+                        onClick={() => setPostSort(id)}
+                      >
+                        <Ic /> <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
                   {canPost(activeSphere) && (
                     <button
                       className="button button--primary button--sm"
@@ -639,7 +666,7 @@ export function SpheresPage() {
                         detail={canPost(activeSphere) ? "Be the first to post in this sphere!" : "Join this sphere to start posting."}
                       />
                     ) : (
-                      posts.map((post) => (
+                      sortedHubPosts.map((post) => (
                         <PostRow
                           key={post.id}
                           post={post}
