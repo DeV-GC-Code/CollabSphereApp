@@ -26,6 +26,17 @@ After **any** meaningful change (code, design, security, infra, docs), before co
 
 ---
 
+Date/Time: 2026-06-14 21:42 EDT
+Area: RBAC hygiene — remove dead email-based admin config from messages-service (Go)
+Action Taken: Removed the unused `AdminEmail` field from `messages-service/config.go` (struct field + `loadConfig` assignment) and the `ADMIN_EMAIL` line from `messages-service/.env` and `.env.example`. Rebuilt (`go build` OK), `go vet` clean except pre-existing `bson.E unkeyed fields` style nags in `repository.go`. Restarted the service on the rebuilt binary; `:8010/actuator/health` → 200.
+Observation: `cfg.AdminEmail` was never referenced anywhere — the Go `JWTMiddleware` only extracts `sub`/`email` into `Caller` and messages-service has no admin gating. The field defaulted to `admin@example.com`, the exact email-equality pattern the Round-2 RBAC refactor removed from user-service/spheres-service/UI.
+Issue Found: Dead config that would invite a future dev to re-introduce email-based admin (`email == cfg.AdminEmail`).
+Fix/Decision: Delete it. If messages-service ever needs admin gating, read the signed `role` claim from the JWT (consistent with spheres-service `req.isAdmin = payload.role === "ADMIN"`), not an email compare. No new code added now (YAGNI).
+Impact: No email-based admin notion remains anywhere in the codebase; RBAC is uniformly claim-driven.
+Next Step: None required; messages-service admin logic remains unneeded.
+
+---
+
 Date/Time: 2026-06-14 21:28 EDT
 Area: Validation — full-stack runtime test of the bug-fix session
 Action Taken: Brought the whole stack up (Postgres/Mongo/Neo4j already running; started Kafka KRaft + Schema Registry; rebuilt user-service & posts-service; launched all 7 services + Vite UI) and exercised the four fixes on `feature/cgc_develop` via the gateway (`:8007`).
