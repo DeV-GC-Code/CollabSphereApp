@@ -16,7 +16,14 @@
     {
       "name": "userid",
       "type": "long",
-      "default": 0
+      "default": 0,
+      "doc": "Post OWNER's user id — the notification recipient."
+    },
+    {
+      "name": "likedbyuserid",
+      "type": "long",
+      "default": 0,
+      "doc": "The user who performed the like (the actor)."
     }
   ]
 }

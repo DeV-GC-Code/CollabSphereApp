@@ -30,8 +30,9 @@ public class PostLikeService {
     public void likePost(Long postId) {
         Long userId = UserContextHolder.getCurrentUserId();
         log.info("Attempting to like the post with id: {}", postId);
-        boolean exists = postsRepository.existsById(postId);
-        if(!exists) throw new ResourceNotFoundException("Post not found with id: "+postId);
+        // Fetch the post so we know its OWNER (the notification recipient), not just that it exists.
+        var post = postsRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: "+postId));
 
         boolean alreadyLiked = postLikeRepository.existsByUserIdAndPostId(userId, postId);
         if(alreadyLiked) throw new BadRequestException("Cannot like the same post again.");
@@ -41,11 +42,13 @@ public class PostLikeService {
         postLike.setUserId(userId);
         PostLike savedLike = postLikeRepository.save(postLike);
 
-        // Publish PostLikedEvent
+        // Publish PostLikedEvent. FIX (notification wrong-user): userid = post OWNER (recipient),
+        // likedbyuserid = liker (actor). Previously userid was the liker → wrong recipient.
         PostLikedEvent event = new PostLikedEvent(
                 savedLike.getId(),
                 savedLike.getPostId(),
-                savedLike.getUserId()
+                post.getUserId(),   // owner → notification recipient
+                userId              // liker → actor
         );
         kafkaTemplate.send(KAFKA_POST_LIKED_TOPIC, event.getId(), event);
 

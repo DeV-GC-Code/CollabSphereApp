@@ -22,6 +22,20 @@ public class JwtService {
     @Value("${jwt.accessTokenExpirationMs:86400000}")
     private long accessTokenExpirationMs;
 
+    // RBAC: admin is determined centrally at the issuer and emitted as a signed `role`
+    // claim — downstream services trust the claim instead of comparing emails themselves.
+    // (Email *verification* is a separate, still-deferred feature; see hardening.md.)
+    @Value("${app.admin-emails:${ADMIN_EMAIL:admin@example.com}}")
+    private String adminEmails;
+
+    private String roleFor(User user) {
+        if (user.getEmail() == null) return "USER";
+        for (String e : adminEmails.split(",")) {
+            if (e.trim().equalsIgnoreCase(user.getEmail().trim())) return "ADMIN";
+        }
+        return "USER";
+    }
+
     private SecretKey getSecretKey() {
         // SEC-4: HS256 needs a >= 256-bit (32-byte) secret. Fail fast on a weak
         // secret rather than minting forgeable tokens with a short key.
@@ -40,6 +54,7 @@ public class JwtService {
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .claim("worksAt", user.getWorksAt())
+                .claim("role", roleFor(user))
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpirationMs))
                 .signWith(getSecretKey())

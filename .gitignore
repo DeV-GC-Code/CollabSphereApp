@@ -92,7 +92,8 @@ __pycache__/
 .agent/
 .antigravity/
 .cursor/
-.docs/
+# .docs/ is now TRACKED as team/project documentation (secrets redacted; secrets live only
+# in gitignored .env*). Re-ignore only if you intend it as purely personal AI memory.
 
 # Husky (was only used for deleted webapp; empty hook removed)
 .husky/

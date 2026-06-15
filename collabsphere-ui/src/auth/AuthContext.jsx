@@ -14,6 +14,7 @@ function userFromToken(token, fallbackEmail = "") {
     email,
     name: payload.name || fallbackName,
     worksAt: payload.worksAt || "",
+    role: payload.role || "USER",   // RBAC: signed role claim from user-service
     exp: payload.exp,
   };
 }
