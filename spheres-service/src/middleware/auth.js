@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@example.com";
-
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -15,7 +13,10 @@ export function requireAuth(req, res, next) {
     req.userId = Number(payload.sub);
     req.userEmail = payload.email;
     req.userName = payload.name || payload.email;
-    req.isAdmin = payload.email === ADMIN_EMAIL;
+    // RBAC: trust the signed `role` claim issued by user-service. Do NOT decide admin
+    // by comparing emails here (that was never a real authorization model). Tokens issued
+    // before the role claim existed simply get no admin rights (safe default).
+    req.isAdmin = payload.role === "ADMIN";
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });

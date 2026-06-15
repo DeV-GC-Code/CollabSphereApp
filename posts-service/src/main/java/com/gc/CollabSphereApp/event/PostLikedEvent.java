@@ -5,19 +5,22 @@
  */
 package com.gc.CollabSphereApp.event;
 
+import org.apache.avro.generic.GenericArray;
 import org.apache.avro.specific.SpecificData;
+import org.apache.avro.util.Utf8;
 import org.apache.avro.message.BinaryMessageEncoder;
 import org.apache.avro.message.BinaryMessageDecoder;
 import org.apache.avro.message.SchemaStore;
 
-@SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  private static final long serialVersionUID = -3698314290053308176L;
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PostLikedEvent\",\"namespace\":\"com.gc.CollabSphereApp.event\",\"fields\":[{\"name\":\"id\",\"type\":\"long\",\"default\":0},{\"name\":\"postid\",\"type\":\"long\",\"default\":0},{\"name\":\"userid\",\"type\":\"long\",\"default\":0}]}");
+  private static final long serialVersionUID = -1484490974088196649L;
+
+
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"PostLikedEvent\",\"namespace\":\"com.gc.CollabSphereApp.event\",\"fields\":[{\"name\":\"id\",\"type\":\"long\",\"default\":0},{\"name\":\"postid\",\"type\":\"long\",\"default\":0},{\"name\":\"userid\",\"type\":\"long\",\"doc\":\"Post OWNER's user id — the notification recipient.\",\"default\":0},{\"name\":\"likedbyuserid\",\"type\":\"long\",\"doc\":\"The user who performed the like (the actor).\",\"default\":0}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
 
-  private static SpecificData MODEL$ = new SpecificData();
+  private static final SpecificData MODEL$ = new SpecificData();
 
   private static final BinaryMessageEncoder<PostLikedEvent> ENCODER =
       new BinaryMessageEncoder<PostLikedEvent>(MODEL$, SCHEMA$);
@@ -26,7 +29,16 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
       new BinaryMessageDecoder<PostLikedEvent>(MODEL$, SCHEMA$);
 
   /**
+   * Return the BinaryMessageEncoder instance used by this class.
+   * @return the message encoder used by this class
+   */
+  public static BinaryMessageEncoder<PostLikedEvent> getEncoder() {
+    return ENCODER;
+  }
+
+  /**
    * Return the BinaryMessageDecoder instance used by this class.
+   * @return the message decoder used by this class
    */
   public static BinaryMessageDecoder<PostLikedEvent> getDecoder() {
     return DECODER;
@@ -35,25 +47,38 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
   /**
    * Create a new BinaryMessageDecoder instance for this class that uses the specified {@link SchemaStore}.
    * @param resolver a {@link SchemaStore} used to find schemas by fingerprint
+   * @return a BinaryMessageDecoder instance for this class backed by the given SchemaStore
    */
   public static BinaryMessageDecoder<PostLikedEvent> createDecoder(SchemaStore resolver) {
     return new BinaryMessageDecoder<PostLikedEvent>(MODEL$, SCHEMA$, resolver);
   }
 
-  /** Serializes this PostLikedEvent to a ByteBuffer. */
+  /**
+   * Serializes this PostLikedEvent to a ByteBuffer.
+   * @return a buffer holding the serialized data for this instance
+   * @throws java.io.IOException if this instance could not be serialized
+   */
   public java.nio.ByteBuffer toByteBuffer() throws java.io.IOException {
     return ENCODER.encode(this);
   }
 
-  /** Deserializes a PostLikedEvent from a ByteBuffer. */
+  /**
+   * Deserializes a PostLikedEvent from a ByteBuffer.
+   * @param b a byte buffer holding serialized data for an instance of this class
+   * @return a PostLikedEvent instance decoded from the given buffer
+   * @throws java.io.IOException if the given bytes could not be deserialized into an instance of this class
+   */
   public static PostLikedEvent fromByteBuffer(
       java.nio.ByteBuffer b) throws java.io.IOException {
     return DECODER.decode(b);
   }
 
-  @Deprecated public long id;
-  @Deprecated public long postid;
-  @Deprecated public long userid;
+  private long id;
+  private long postid;
+  /** Post OWNER's user id — the notification recipient. */
+  private long userid;
+  /** The user who performed the like (the actor). */
+  private long likedbyuserid;
 
   /**
    * Default constructor.  Note that this does not initialize fields
@@ -66,14 +91,17 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
    * All-args constructor.
    * @param id The new value for id
    * @param postid The new value for postid
-   * @param userid The new value for userid
+   * @param userid Post OWNER's user id — the notification recipient.
+   * @param likedbyuserid The user who performed the like (the actor).
    */
-  public PostLikedEvent(java.lang.Long id, java.lang.Long postid, java.lang.Long userid) {
+  public PostLikedEvent(java.lang.Long id, java.lang.Long postid, java.lang.Long userid, java.lang.Long likedbyuserid) {
     this.id = id;
     this.postid = postid;
     this.userid = userid;
+    this.likedbyuserid = likedbyuserid;
   }
 
+  public org.apache.avro.specific.SpecificData getSpecificData() { return MODEL$; }
   public org.apache.avro.Schema getSchema() { return SCHEMA$; }
   // Used by DatumWriter.  Applications should not call.
   public java.lang.Object get(int field$) {
@@ -81,7 +109,8 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
     case 0: return id;
     case 1: return postid;
     case 2: return userid;
-    default: throw new org.apache.avro.AvroRuntimeException("Bad index");
+    case 3: return likedbyuserid;
+    default: throw new IndexOutOfBoundsException("Invalid index: " + field$);
     }
   }
 
@@ -92,7 +121,8 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
     case 0: id = (java.lang.Long)value$; break;
     case 1: postid = (java.lang.Long)value$; break;
     case 2: userid = (java.lang.Long)value$; break;
-    default: throw new org.apache.avro.AvroRuntimeException("Bad index");
+    case 3: likedbyuserid = (java.lang.Long)value$; break;
+    default: throw new IndexOutOfBoundsException("Invalid index: " + field$);
     }
   }
 
@@ -100,15 +130,16 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
    * Gets the value of the 'id' field.
    * @return The value of the 'id' field.
    */
-  public java.lang.Long getId() {
+  public long getId() {
     return id;
   }
+
 
   /**
    * Sets the value of the 'id' field.
    * @param value the value to set.
    */
-  public void setId(java.lang.Long value) {
+  public void setId(long value) {
     this.id = value;
   }
 
@@ -116,32 +147,53 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
    * Gets the value of the 'postid' field.
    * @return The value of the 'postid' field.
    */
-  public java.lang.Long getPostid() {
+  public long getPostid() {
     return postid;
   }
+
 
   /**
    * Sets the value of the 'postid' field.
    * @param value the value to set.
    */
-  public void setPostid(java.lang.Long value) {
+  public void setPostid(long value) {
     this.postid = value;
   }
 
   /**
    * Gets the value of the 'userid' field.
-   * @return The value of the 'userid' field.
+   * @return Post OWNER's user id — the notification recipient.
    */
-  public java.lang.Long getUserid() {
+  public long getUserid() {
     return userid;
   }
 
+
   /**
    * Sets the value of the 'userid' field.
+   * Post OWNER's user id — the notification recipient.
    * @param value the value to set.
    */
-  public void setUserid(java.lang.Long value) {
+  public void setUserid(long value) {
     this.userid = value;
+  }
+
+  /**
+   * Gets the value of the 'likedbyuserid' field.
+   * @return The user who performed the like (the actor).
+   */
+  public long getLikedbyuserid() {
+    return likedbyuserid;
+  }
+
+
+  /**
+   * Sets the value of the 'likedbyuserid' field.
+   * The user who performed the like (the actor).
+   * @param value the value to set.
+   */
+  public void setLikedbyuserid(long value) {
+    this.likedbyuserid = value;
   }
 
   /**
@@ -158,7 +210,11 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
    * @return A new PostLikedEvent RecordBuilder
    */
   public static com.gc.CollabSphereApp.event.PostLikedEvent.Builder newBuilder(com.gc.CollabSphereApp.event.PostLikedEvent.Builder other) {
-    return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder(other);
+    if (other == null) {
+      return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder();
+    } else {
+      return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder(other);
+    }
   }
 
   /**
@@ -167,22 +223,30 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
    * @return A new PostLikedEvent RecordBuilder
    */
   public static com.gc.CollabSphereApp.event.PostLikedEvent.Builder newBuilder(com.gc.CollabSphereApp.event.PostLikedEvent other) {
-    return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder(other);
+    if (other == null) {
+      return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder();
+    } else {
+      return new com.gc.CollabSphereApp.event.PostLikedEvent.Builder(other);
+    }
   }
 
   /**
    * RecordBuilder for PostLikedEvent instances.
    */
+  @org.apache.avro.specific.AvroGenerated
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<PostLikedEvent>
     implements org.apache.avro.data.RecordBuilder<PostLikedEvent> {
 
     private long id;
     private long postid;
+    /** Post OWNER's user id — the notification recipient. */
     private long userid;
+    /** The user who performed the like (the actor). */
+    private long likedbyuserid;
 
     /** Creates a new Builder */
     private Builder() {
-      super(SCHEMA$);
+      super(SCHEMA$, MODEL$);
     }
 
     /**
@@ -193,15 +257,19 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
       super(other);
       if (isValidValue(fields()[0], other.id)) {
         this.id = data().deepCopy(fields()[0].schema(), other.id);
-        fieldSetFlags()[0] = true;
+        fieldSetFlags()[0] = other.fieldSetFlags()[0];
       }
       if (isValidValue(fields()[1], other.postid)) {
         this.postid = data().deepCopy(fields()[1].schema(), other.postid);
-        fieldSetFlags()[1] = true;
+        fieldSetFlags()[1] = other.fieldSetFlags()[1];
       }
       if (isValidValue(fields()[2], other.userid)) {
         this.userid = data().deepCopy(fields()[2].schema(), other.userid);
-        fieldSetFlags()[2] = true;
+        fieldSetFlags()[2] = other.fieldSetFlags()[2];
+      }
+      if (isValidValue(fields()[3], other.likedbyuserid)) {
+        this.likedbyuserid = data().deepCopy(fields()[3].schema(), other.likedbyuserid);
+        fieldSetFlags()[3] = other.fieldSetFlags()[3];
       }
     }
 
@@ -210,7 +278,7 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
      * @param other The existing instance to copy.
      */
     private Builder(com.gc.CollabSphereApp.event.PostLikedEvent other) {
-            super(SCHEMA$);
+      super(SCHEMA$, MODEL$);
       if (isValidValue(fields()[0], other.id)) {
         this.id = data().deepCopy(fields()[0].schema(), other.id);
         fieldSetFlags()[0] = true;
@@ -223,15 +291,20 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
         this.userid = data().deepCopy(fields()[2].schema(), other.userid);
         fieldSetFlags()[2] = true;
       }
+      if (isValidValue(fields()[3], other.likedbyuserid)) {
+        this.likedbyuserid = data().deepCopy(fields()[3].schema(), other.likedbyuserid);
+        fieldSetFlags()[3] = true;
+      }
     }
 
     /**
       * Gets the value of the 'id' field.
       * @return The value.
       */
-    public java.lang.Long getId() {
+    public long getId() {
       return id;
     }
+
 
     /**
       * Sets the value of the 'id' field.
@@ -267,9 +340,10 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
       * Gets the value of the 'postid' field.
       * @return The value.
       */
-    public java.lang.Long getPostid() {
+    public long getPostid() {
       return postid;
     }
+
 
     /**
       * Sets the value of the 'postid' field.
@@ -303,14 +377,17 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
 
     /**
       * Gets the value of the 'userid' field.
+      * Post OWNER's user id — the notification recipient.
       * @return The value.
       */
-    public java.lang.Long getUserid() {
+    public long getUserid() {
       return userid;
     }
 
+
     /**
       * Sets the value of the 'userid' field.
+      * Post OWNER's user id — the notification recipient.
       * @param value The value of 'userid'.
       * @return This builder.
       */
@@ -323,6 +400,7 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
 
     /**
       * Checks whether the 'userid' field has been set.
+      * Post OWNER's user id — the notification recipient.
       * @return True if the 'userid' field has been set, false otherwise.
       */
     public boolean hasUserid() {
@@ -332,10 +410,54 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
 
     /**
       * Clears the value of the 'userid' field.
+      * Post OWNER's user id — the notification recipient.
       * @return This builder.
       */
     public com.gc.CollabSphereApp.event.PostLikedEvent.Builder clearUserid() {
       fieldSetFlags()[2] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'likedbyuserid' field.
+      * The user who performed the like (the actor).
+      * @return The value.
+      */
+    public long getLikedbyuserid() {
+      return likedbyuserid;
+    }
+
+
+    /**
+      * Sets the value of the 'likedbyuserid' field.
+      * The user who performed the like (the actor).
+      * @param value The value of 'likedbyuserid'.
+      * @return This builder.
+      */
+    public com.gc.CollabSphereApp.event.PostLikedEvent.Builder setLikedbyuserid(long value) {
+      validate(fields()[3], value);
+      this.likedbyuserid = value;
+      fieldSetFlags()[3] = true;
+      return this;
+    }
+
+    /**
+      * Checks whether the 'likedbyuserid' field has been set.
+      * The user who performed the like (the actor).
+      * @return True if the 'likedbyuserid' field has been set, false otherwise.
+      */
+    public boolean hasLikedbyuserid() {
+      return fieldSetFlags()[3];
+    }
+
+
+    /**
+      * Clears the value of the 'likedbyuserid' field.
+      * The user who performed the like (the actor).
+      * @return This builder.
+      */
+    public com.gc.CollabSphereApp.event.PostLikedEvent.Builder clearLikedbyuserid() {
+      fieldSetFlags()[3] = false;
       return this;
     }
 
@@ -347,7 +469,10 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
         record.id = fieldSetFlags()[0] ? this.id : (java.lang.Long) defaultValue(fields()[0]);
         record.postid = fieldSetFlags()[1] ? this.postid : (java.lang.Long) defaultValue(fields()[1]);
         record.userid = fieldSetFlags()[2] ? this.userid : (java.lang.Long) defaultValue(fields()[2]);
+        record.likedbyuserid = fieldSetFlags()[3] ? this.likedbyuserid : (java.lang.Long) defaultValue(fields()[3]);
         return record;
+      } catch (org.apache.avro.AvroMissingFieldException e) {
+        throw e;
       } catch (java.lang.Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
@@ -372,4 +497,67 @@ public class PostLikedEvent extends org.apache.avro.specific.SpecificRecordBase 
     READER$.read(this, SpecificData.getDecoder(in));
   }
 
+  @Override protected boolean hasCustomCoders() { return true; }
+
+  @Override public void customEncode(org.apache.avro.io.Encoder out)
+    throws java.io.IOException
+  {
+    out.writeLong(this.id);
+
+    out.writeLong(this.postid);
+
+    out.writeLong(this.userid);
+
+    out.writeLong(this.likedbyuserid);
+
+  }
+
+  @Override public void customDecode(org.apache.avro.io.ResolvingDecoder in)
+    throws java.io.IOException
+  {
+    org.apache.avro.Schema.Field[] fieldOrder = in.readFieldOrderIfDiff();
+    if (fieldOrder == null) {
+      this.id = in.readLong();
+
+      this.postid = in.readLong();
+
+      this.userid = in.readLong();
+
+      this.likedbyuserid = in.readLong();
+
+    } else {
+      for (int i = 0; i < 4; i++) {
+        switch (fieldOrder[i].pos()) {
+        case 0:
+          this.id = in.readLong();
+          break;
+
+        case 1:
+          this.postid = in.readLong();
+          break;
+
+        case 2:
+          this.userid = in.readLong();
+          break;
+
+        case 3:
+          this.likedbyuserid = in.readLong();
+          break;
+
+        default:
+          throw new java.io.IOException("Corrupt ResolvingDecoder.");
+        }
+      }
+    }
+  }
 }
+
+
+
+
+
+
+
+
+
+

@@ -33,6 +33,13 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${spring.datasource.password}")
     private String dbPassword;
 
+    // Posts seeding reads the user DB (cross-service) to resolve author IDs — a deliberate
+    // DEV-ONLY convenience. OFF by default so normal runs never couple to collabsphere_users
+    // (database-per-service). Enable locally with SEED_POSTS_ENABLED=true.
+    // Long term: seed via the user-service API or Kafka, never a direct cross-DB read.
+    @Value("${seed.posts.enabled:false}")
+    private boolean seedPostsEnabled;
+
     private JdbcTemplate usersJdbcTemplate;
 
     private JdbcTemplate usersJdbcTemplate() {
@@ -84,6 +91,10 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        if (!seedPostsEnabled) {
+            log.info("[DataInitializer] post seeding disabled (seed.posts.enabled=false) — skipping cross-DB user lookup");
+            return;
+        }
         if (postsRepository.count() >= 9) return;
 
         Map<String, Long> U = resolveUsers();

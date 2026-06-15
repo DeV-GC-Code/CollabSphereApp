@@ -25,7 +25,7 @@ import { initials, timeAgo } from "../utils/format.js";
 
 const palette = ["blue", "purple", "teal", "rose", "amber", "emerald"];
 
-const ADMIN_EMAIL = "admin@example.com";
+// RBAC: admin is the signed role claim from the JWT, not an email comparison.
 
 export function SpheresPage() {
   const { token, user, signOut } = useAuth();
@@ -68,7 +68,7 @@ export function SpheresPage() {
     return list.sort((a, b) => hot(b) - hot(a));
   }, [posts, postSort]);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.role === "ADMIN";
 
   const showToast = (message) => {
     setToast(message);

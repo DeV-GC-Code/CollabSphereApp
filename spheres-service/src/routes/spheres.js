@@ -4,6 +4,39 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
+// ── Access-control helpers ──────────────────────────────────────────────────────
+// Load a sphere row (incl. caller's membership) or send 404.
+async function loadSphere(res, sphereId, userId) {
+  const { rows } = await pool.query(
+    `SELECT s.*,
+       EXISTS(SELECT 1 FROM sphere_members WHERE sphere_id = s.id AND user_id = $2) AS is_member
+     FROM spheres s WHERE s.id = $1`,
+    [sphereId, userId],
+  );
+  if (!rows.length) { res.status(404).json({ error: "Sphere not found" }); return null; }
+  return rows[0];
+}
+
+// Privacy gate: a private sphere is viewable only by members, its creator, or an admin.
+// Returns true if granted; otherwise sends 404 (don't reveal that a private sphere exists).
+function ensureCanView(res, sphere, req) {
+  if (!sphere.is_private) return true;
+  if (sphere.is_member || sphere.created_by === req.userId || req.isAdmin) return true;
+  res.status(404).json({ error: "Sphere not found" });
+  return false;
+}
+
+// Nested-authz: confirm a post actually belongs to the sphere in the URL. Returns the
+// post row (id, user_id) or sends 404 — prevents cross-sphere vote/comment/delete via a mismatched URL.
+async function loadPostInSphere(res, postId, sphereId) {
+  const { rows } = await pool.query(
+    "SELECT id, user_id FROM sphere_posts WHERE id = $1 AND sphere_id = $2",
+    [postId, sphereId],
+  );
+  if (!rows.length) { res.status(404).json({ error: "Post not found" }); return null; }
+  return rows[0];
+}
+
 // ── Sphere CRUD ───────────────────────────────────────────────────────────────
 
 router.get("/", requireAuth, async (req, res) => {
@@ -71,6 +104,7 @@ router.get("/:id", requireAuth, async (req, res) => {
     [req.params.id, req.userId],
   );
   if (!rows.length) return res.status(404).json({ error: "Sphere not found" });
+  if (!ensureCanView(res, rows[0], req)) return; // privacy: private spheres need membership
   res.json(rows[0]);
 });
 
@@ -127,6 +161,9 @@ router.delete("/:id/leave", requireAuth, async (req, res) => {
 });
 
 router.get("/:id/members", requireAuth, async (req, res) => {
+  const sphere = await loadSphere(res, req.params.id, req.userId);
+  if (!sphere) return;
+  if (!ensureCanView(res, sphere, req)) return; // privacy gate
   const { rows } = await pool.query(
     `SELECT user_id, role, joined_at
      FROM sphere_members WHERE sphere_id = $1
@@ -151,6 +188,9 @@ router.delete("/:id", requireAuth, async (req, res) => {
 // ── Sphere Posts ──────────────────────────────────────────────────────────────
 
 router.get("/:id/posts", requireAuth, async (req, res) => {
+  const sphere = await loadSphere(res, req.params.id, req.userId);
+  if (!sphere) return;
+  if (!ensureCanView(res, sphere, req)) return; // privacy: can't read a private sphere's posts
   const { page = 1, limit = 30 } = req.query;
   const offset = (Number(page) - 1) * Number(limit);
   const { rows } = await pool.query(
@@ -186,6 +226,9 @@ router.post("/:id/posts", requireAuth, async (req, res) => {
 });
 
 router.get("/:id/posts/:postId", requireAuth, async (req, res) => {
+  const sphere = await loadSphere(res, req.params.id, req.userId);
+  if (!sphere) return;
+  if (!ensureCanView(res, sphere, req)) return; // privacy gate
   const [postRes, commentsRes] = await Promise.all([
     pool.query(
       `SELECT sp.*,
@@ -231,6 +274,11 @@ router.post("/:id/posts/:postId/vote", requireAuth, async (req, res) => {
   if (![1, -1, 0].includes(voteValue)) {
     return res.status(400).json({ error: "vote must be 1, -1, or 0" });
   }
+
+  const sphere = await loadSphere(res, req.params.id, req.userId);
+  if (!sphere) return;
+  if (!ensureCanView(res, sphere, req)) return;                       // privacy gate
+  if (!(await loadPostInSphere(res, req.params.postId, req.params.id))) return; // post must belong to this sphere
 
   const client = await pool.connect();
   try {
@@ -279,6 +327,8 @@ router.post("/:id/posts/:postId/comments", requireAuth, async (req, res) => {
   if (!member && !req.isAdmin) {
     return res.status(403).json({ error: "You must join this sphere to comment" });
   }
+  // Nested-authz: the post must belong to this sphere (prevents cross-sphere comment injection).
+  if (!(await loadPostInSphere(res, req.params.postId, req.params.id))) return;
 
   const { content } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: "content is required" });
@@ -306,11 +356,16 @@ router.post("/:id/posts/:postId/comments", requireAuth, async (req, res) => {
 });
 
 router.delete("/:id/posts/:postId/comments/:commentId", requireAuth, async (req, res) => {
+  // Nested-authz: the post must belong to this sphere…
+  if (!(await loadPostInSphere(res, req.params.postId, req.params.id))) return;
+  // …and the comment must belong to that post (URL parts must all line up).
   const { rows: [comment] } = await pool.query(
-    "SELECT user_id FROM sphere_post_comments WHERE id = $1",
+    "SELECT user_id, post_id FROM sphere_post_comments WHERE id = $1",
     [req.params.commentId],
   );
-  if (!comment) return res.status(404).json({ error: "Comment not found" });
+  if (!comment || Number(comment.post_id) !== Number(req.params.postId)) {
+    return res.status(404).json({ error: "Comment not found" });
+  }
 
   const isAuthor = comment.user_id === req.userId;
   if (!isAuthor && !req.isAdmin) {

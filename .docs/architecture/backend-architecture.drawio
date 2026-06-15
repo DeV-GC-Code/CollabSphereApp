@@ -1,0 +1,106 @@
+<mxfile host="65bd71144e">
+    <diagram id="backend" name="Backend Architecture">
+        <mxGraphModel dx="960" dy="701" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="CollabSphere — Backend Architecture (verified June 2026)" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#1a237e;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="760" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="client" value="React UI (Vite)&#10;Authorization: Bearer JWT&#10;base /api/v1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="10" y="60" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="gw" value="API Gateway :8007&#10;Spring Cloud Gateway&#10;routing · JWT AuthenticationFilter · CORS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="380" y="75" width="300" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_client_gw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="client" target="gw" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="user" value="user-service :9020&#10;Java/Spring · PostgreSQL&#10;auth(JWT)/profiles/stats · Kafka producer&#10;(PUBLIC at gateway)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="240" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="posts" value="posts-service :9010&#10;Java/Spring · PostgreSQL&#10;feed/posts/comments/likes · Kafka producer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="330" y="240" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="conn" value="connections-service :9030&#10;Java/Spring Data Neo4j&#10;social graph · Kafka consumer+producer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="600" y="240" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="spheres" value="spheres-service :8009&#10;Node.js/Express · PostgreSQL&#10;communities/threads/votes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="870" y="240" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="msg" value="messages-service :8010&#10;Go/Gin · MongoDB&#10;direct messages (self-validates JWT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="1140" y="240" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="notif" value="notification-service :9070&#10;Python/FastAPI · PostgreSQL&#10;activity feed · Kafka consumer (self-validates JWT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="1140" y="360" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="user" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="posts" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="conn" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="spheres" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="msg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;" parent="1" source="gw" target="notif" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_posts_conn" value="HTTP (feed scoping)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;dashed=1;fontColor=#b85450;" parent="1" source="posts" target="conn" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="pg" value="PostgreSQL :5432&#10;(users, posts, spheres, notifications)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="500" width="200" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="neo" value="Neo4j :7687&#10;(connections graph)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="650" y="500" width="180" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="mongo" value="MongoDB :27017&#10;(messages)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="500" width="180" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed1" style="html=1;" parent="1" source="user" target="pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed2" style="html=1;" parent="1" source="posts" target="pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed3" style="html=1;" parent="1" source="spheres" target="pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed4" style="html=1;" parent="1" source="notif" target="pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed5" style="html=1;" parent="1" source="conn" target="neo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ed6" style="html=1;" parent="1" source="msg" target="mongo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="kafka" value="Kafka :9092 + Schema Registry :8081 (Avro events, e.g. POST_CREATED)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="330" y="640" width="780" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="ek1" value="produce" style="html=1;dashed=1;fontColor=#7f6000;" parent="1" source="user" target="kafka" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ek2" value="produce" style="html=1;dashed=1;fontColor=#7f6000;" parent="1" source="posts" target="kafka" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ek3" value="consume+produce" style="html=1;dashed=1;fontColor=#7f6000;" parent="1" source="conn" target="kafka" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ek4" value="consume" style="html=1;dashed=1;fontColor=#7f6000;" parent="1" source="notif" target="kafka" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="note" value="Notes: gateway is the only public entry; /users is public. StripPrefix differs per route (spheres=3, others=2); likes→RewritePath to posts. Java services currently use the 'postgres' DB (per-service DB isolation partial). Diagram must be updated when a service/route/event/datastore changes (see guardrails)." style="text;html=1;align=left;fontSize=11;fontColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="740" width="1100" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

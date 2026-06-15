@@ -1,0 +1,66 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="frontend" name="Frontend Architecture">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="CollabSphere — Frontend Architecture (collabsphere-ui)" style="text;html=1;fontSize=18;fontStyle=1;fontColor=#1a237e;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="760" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="entry" value="Browser entry&#10;index.html (theme FOUC script) → main.jsx&#10;Providers: AuthProvider · ThemeProvider · Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="320" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="router" value="App.jsx — Routes + Guards&#10;GuestRoute(/login) · ProtectedRoute(/*)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" style="html=1;" edge="1" parent="1" source="entry" target="router"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="auth" value="AuthPage (/login)&#10;login/signup → JWT → AuthContext.signIn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="er2" value="not authed" style="html=1;" edge="1" parent="1" source="router" target="auth"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="shell" value="AppShell (authed layout)&#10;Sidebar · TopBar · CommandPalette · Outlet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="200" width="340" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="er3" value="authed" style="html=1;" edge="1" parent="1" source="router" target="shell"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="pages" value="Pages (Outlet)&#10;Feed · Network · Messages · Spheres · Saved · Profile · Notifications" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="430" y="310" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="er4" style="html=1;" edge="1" parent="1" source="shell" target="pages"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="state" value="State: AuthContext (JWT/user) · ThemeContext&#10;Local: useState/useMemo · Saved posts (localStorage)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="430" width="340" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="er5" style="html=1;dashed=1;" edge="1" parent="1" source="pages" target="state"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="apilayer" value="API layer&#10;api/client.js (request: base /api/v1, Bearer, 12s timeout, {status,message})&#10;api/auth · posts · connections · spheres · messages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="300" width="360" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="er6" value="all data calls" style="html=1;" edge="1" parent="1" source="pages" target="apilayer"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="content" value="Post content pipeline&#10;RichTextEditor → sanitizeHtml → HTML&#10;parsePostContent + renderPostHtml (HTML/legacy BBCode)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="840" y="430" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="er7" style="html=1;dashed=1;" edge="1" parent="1" source="pages" target="content"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="gw" value="API Gateway :8007&#10;(see backend-architecture.drawio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="er8" value="HTTPS /api/v1/*" style="html=1;" edge="1" parent="1" source="apilayer" target="gw"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="styles" value="Design system&#10;styles/app.css — CSS tokens + override layers&#10;ThemeContext sets data-theme (light/dark)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="320" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" value="Errors: 401 → signOut(); inline notices; Toast/Spinner/Skeleton/EmptyState. Update this diagram + frontend-flow.md when a page/route/integration is added (see guardrails)." style="text;html=1;align=left;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1160" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
