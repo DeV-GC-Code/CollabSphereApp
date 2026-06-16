@@ -27,10 +27,9 @@ pkill -f "vite"                            2>/dev/null && echo "UI stopped"
 pkill -f "schema-registry-start"  2>/dev/null && echo "Schema Registry stopped"
 pkill -f "kafka-server-start"     2>/dev/null && echo "Kafka stopped"
 
-# MongoDB (brew services)
-brew services stop mongodb-community@8.0 && echo "MongoDB stopped"
-
+# MongoDB (brew services) and 
 # Neo4j and PostgreSQL (brew services)
+brew services stop mongodb-community@8.0 && echo "MongoDB stopped"
 brew services stop neo4j           && echo "Neo4j stopped"
 brew services stop postgresql@15   && echo "PostgreSQL stopped"
 ```
